@@ -23,6 +23,10 @@
 #define STATIC_ASSERT_AGGREGATE(TYPE) static_assert(std::is_aggregate_v<TYPE>, #TYPE " must be an aggregate type")
 
 
+namespace mce {
+class UUID;
+}
+
 namespace land {
 
 // 全局类型定义
@@ -38,7 +42,14 @@ enum class LandPermType : int {
     Guest,        // 访客
 };
 
+
 inline int constexpr GlobalSubLandMaxNestedLevel = 16; // 子领地最大嵌套层数
+
+// Minecraft UUID::fromString / canParse 仅允许 0-9, a-f, A-F
+// 所以这里使用一个几乎不可能冲突的合法 16 进制字符串，作为领地系统账号
+inline constexpr std::string_view SYSTEM_ACCOUNT_UUID_STR = "deadbeef-dead-beef-dead-beefdeadbeef";
+
+LDAPI extern mce::UUID const SYSTEM_ACCOUNT_UUID;
 
 } // namespace land
 

@@ -153,7 +153,8 @@ LandScheduler::LandScheduler() : impl(std::make_unique<Impl>()) {
 
     impl->mPlayerEnterLandListener =
         bus.emplaceListener<event::PlayerEnterLandEvent>([](event::PlayerEnterLandEvent& ev) {
-            if (!Config::cfg.land.tip.enterTip) {
+            auto const& conf = ConfigProvider::getNotificationsConfig();
+            if (!conf.enterLandTip) {
                 return;
             }
 
@@ -211,10 +212,13 @@ LandScheduler::LandScheduler() : impl(std::make_unique<Impl>()) {
         co_return;
     }).launch(ll::thread::ServerThreadExecutor::getDefault());
 
-    if (Config::cfg.land.tip.bottomContinuedTip) {
+    auto& conf = ConfigProvider::getNotificationsConfig();
+    if (conf.bottomContinuousTip) {
         ll::coro::keepThis([quit = impl->mQuit, sleep = impl->mLandTipSchedulingSleep, this]() -> ll::coro::CoroTask<> {
             while (!quit->load()) {
-                co_await sleep->sleepFor(Config::cfg.land.tip.bottomTipFrequency * ll::chrono::ticks{20});
+                co_await sleep->sleepFor(
+                    ConfigProvider::getNotificationsConfig().bottomTipCycle * ll::chrono::ticks{20}
+                );
                 if (quit->load()) {
                     break;
                 }

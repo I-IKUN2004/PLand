@@ -86,16 +86,30 @@ void Land::setOwner(mce::UUID const& uuid) {
     impl->mDirtyCounter.increment();
 }
 std::string const& Land::getRawOwner() const { return impl->mContext.mLandOwner; }
+bool               Land::isSystemOwned() const {
+    assert(SYSTEM_ACCOUNT_UUID != mce::UUID::EMPTY());
+    assert(SYSTEM_ACCOUNT_UUID.asString() == SYSTEM_ACCOUNT_UUID_STR);
+    return impl->mCacheOwner == SYSTEM_ACCOUNT_UUID;
+}
 
 std::unordered_set<mce::UUID> const& Land::getMembers() const { return impl->mCacheMembers; }
-void                                 Land::addLandMember(mce::UUID const& uuid) {
+bool                                 Land::addLandMember(mce::UUID const& uuid) {
+    if (isOwner(uuid)) {
+        return false;
+    }
     impl->mCacheMembers.insert(uuid);
     impl->mContext.mLandMembers.emplace_back(uuid.asString());
     impl->mDirtyCounter.increment();
+    return true;
 }
 void Land::removeLandMember(mce::UUID const& uuid) {
     impl->mCacheMembers.erase(uuid);
     std::erase_if(impl->mContext.mLandMembers, [uuid = uuid.asString()](auto const& u) { return u == uuid; });
+    impl->mDirtyCounter.increment();
+}
+void Land::clearMembers() {
+    impl->mCacheMembers.clear();
+    impl->mContext.mLandMembers.clear();
     impl->mDirtyCounter.increment();
 }
 
@@ -108,6 +122,33 @@ void               Land::setName(std::string const& name) {
 int  Land::getOriginalBuyPrice() const { return impl->mContext.mOriginalBuyPrice; }
 void Land::setOriginalBuyPrice(int price) {
     impl->mContext.mOriginalBuyPrice = price;
+    impl->mDirtyCounter.increment();
+}
+
+LandHoldType Land::getHoldType() const { return impl->mContext.mHoldType; }
+LeaseState   Land::getLeaseState() const { return impl->mContext.mLeasing.mState; }
+bool         Land::isBought() const { return impl->mContext.mHoldType == LandHoldType::Bought; }
+bool         Land::isLeased() const { return impl->mContext.mHoldType == LandHoldType::Leased; }
+bool         Land::isLeaseActive() const { return isLeased() && impl->mContext.mLeasing.mState == LeaseState::Active; }
+bool         Land::isLeaseFrozen() const { return isLeased() && impl->mContext.mLeasing.mState == LeaseState::Frozen; }
+bool   Land::isLeaseExpired() const { return isLeased() && impl->mContext.mLeasing.mState == LeaseState::Expired; }
+time_t Land::getLeaseStartAt() const { return impl->mContext.mLeasing.mStartAt; }
+time_t Land::getLeaseEndAt() const { return impl->mContext.mLeasing.mEndAt; }
+
+void Land::setHoldType(LandHoldType type) {
+    impl->mContext.mHoldType = type;
+    impl->mDirtyCounter.increment();
+}
+void Land::setLeaseState(LeaseState state) {
+    impl->mContext.mLeasing.mState = state;
+    impl->mDirtyCounter.increment();
+}
+void Land::setLeaseStartAt(time_t ts) {
+    impl->mContext.mLeasing.mStartAt = ts;
+    impl->mDirtyCounter.increment();
+}
+void Land::setLeaseEndAt(time_t ts) {
+    impl->mContext.mLeasing.mEndAt = ts;
     impl->mDirtyCounter.increment();
 }
 
@@ -146,9 +187,11 @@ bool Land::isMixLand() const { return hasParentLand() && hasSubLand(); }        
 bool Land::isSubLand() const { return hasParentLand() && !hasSubLand(); }       // 有父 & 无子
 
 bool Land::canCreateSubLand() const {
-    auto nestedLevel = getNestedLevel();
-    return nestedLevel < Config::cfg.land.subLand.maxNested && nestedLevel < GlobalSubLandMaxNestedLevel
-        && static_cast<int>(impl->mContext.mSubLandIDs.size()) < Config::cfg.land.subLand.maxSubLand;
+    if (isLeased()) return false;
+    auto const& conf        = ConfigProvider::getSubLandConfig();
+    auto        nestedLevel = getNestedLevel();
+    return nestedLevel < conf.maxNestedDepth && nestedLevel < GlobalSubLandMaxNestedLevel
+        && static_cast<int>(impl->mContext.mSubLandIDs.size()) < conf.maxSubLandsPerLand;
 }
 
 LandID              Land::getParentLandID() const { return impl->mContext.mParentLandID; }
@@ -183,6 +226,9 @@ bool Land::isCollision(BlockPos const& pos1, BlockPos const& pos2) const {
 
 
 LandPermType Land::getPermType(mce::UUID const& uuid) const {
+    if (isLeaseFrozen()) {
+        return LandPermType::Guest;
+    }
     if (isOwner(uuid)) return LandPermType::Owner;
     if (isMember(uuid)) return LandPermType::Member;
     return LandPermType::Guest;

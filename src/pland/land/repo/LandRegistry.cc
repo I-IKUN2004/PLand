@@ -407,9 +407,9 @@ ll::Expected<> LandRegistry::addOrdinaryLand(std::shared_ptr<Land> const& land) 
             "The land type does not match the required type"
         );
     }
-    if (!LandCreateValidator::isLandRangeLegal(land->getAABB(), land->getDimensionId(), land->is3D())
-        || !LandCreateValidator::isLandInForbiddenRange(land->getAABB(), land->getDimensionId())
-        || !LandCreateValidator::isOrdinaryLandRangeConflict(*this, land)) {
+    if (!LandCreateValidator::ensureLandRangeIsLegal(land->getAABB(), land->getDimensionId(), land->is3D())
+        || !LandCreateValidator::ensureLandNotInForbiddenRange(land->getAABB(), land->getDimensionId())
+        || !LandCreateValidator::ensureNoLandRangeConflict(*this, land)) {
         return StorageError::make(StorageError::ErrorCode::LandRangeIllegal, "The land range is illegal");
     }
     return impl->_addLand(land);
