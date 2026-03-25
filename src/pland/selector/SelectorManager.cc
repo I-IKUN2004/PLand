@@ -45,7 +45,7 @@ SelectorManager::SelectorManager() : impl(std::make_unique<Impl>()) {
             {
                 auto iter = impl->mStabilization.find(player.getUuid());
                 if (iter == impl->mStabilization.end()) {
-                    iter = impl->mStabilization.emplace(player.getUuid(), 80).first; // ms
+                    iter = impl->mStabilization.emplace(player.getUuid(), 250).first; // ms
                 }
                 if (!iter->second.ready()) {
                     return;

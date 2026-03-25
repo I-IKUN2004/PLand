@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 问题修复
 
 - 修复 DevTool 领地编辑器非等宽字体显示错位 @engsr6982
+- 提高防抖阈值修复PC端选区时可能出现的多次触发 @engsr6982 #199
 
 ### 🚀 性能优化
 
