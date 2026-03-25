@@ -302,7 +302,7 @@ void show_current_land_mgr(CommandOrigin const& ori, CommandOutput& out) {
 
 using ll::command::RuntimeCommand;
 
-bool ensure_lease_origin(CommandOrigin const& ori, CommandOutput& out) {
+bool ensure_origin_console_or_player(CommandOrigin const& ori, CommandOutput& out) {
     auto originType = ori.getOriginType();
     if (originType != CommandOriginType::DedicatedServer && originType != CommandOriginType::Player) {
         feedback_utils::sendErrorText(out, "This command can only be executed by players and the console"_tr());
@@ -328,7 +328,7 @@ std::shared_ptr<Land> resolve_lease_land(
     RuntimeCommand const& param,
     std::string const&    idKey = "id"
 ) {
-    if (!ensure_lease_origin(ori, out)) return nullptr;
+    if (!ensure_origin_console_or_player(ori, out)) return nullptr;
 
     auto& registry = PLand::getInstance().getLandRegistry();
 
@@ -366,7 +366,7 @@ std::shared_ptr<Land> resolve_lease_land(
 }
 
 void show_lease_info(CommandOrigin const& ori, CommandOutput& out, RuntimeCommand const& param) {
-    if (!ensure_lease_origin(ori, out)) return;
+    if (!ensure_origin_console_or_player(ori, out)) return;
 
     auto land = resolve_lease_land(ori, out, param);
     if (!land) return;
@@ -397,7 +397,7 @@ void show_lease_info(CommandOrigin const& ori, CommandOutput& out, RuntimeComman
 }
 
 void admin_set_lease_start_end(CommandOrigin const& ori, CommandOutput& out, RuntimeCommand const& param) {
-    if (!ensure_lease_origin(ori, out)) return;
+    if (!ensure_origin_console_or_player(ori, out)) return;
     if (!ensure_admin(ori, out)) return;
 
     auto land = resolve_lease_land(ori, out, param);
@@ -431,7 +431,7 @@ void admin_set_lease_start_end(CommandOrigin const& ori, CommandOutput& out, Run
 
 enum class AdminLeaseAddTimeUint { day, hour, min, sec };
 void admin_add_lease_time(CommandOrigin const& ori, CommandOutput& out, RuntimeCommand const& param) {
-    if (!ensure_lease_origin(ori, out)) return;
+    if (!ensure_origin_console_or_player(ori, out)) return;
     if (!ensure_admin(ori, out)) return;
 
     auto land = resolve_lease_land(ori, out, param);
@@ -482,7 +482,7 @@ enum class AdminLeaseForceTarget {
     force_recycle,
 };
 void admin_force_freeze_or_recycle(CommandOrigin const& ori, CommandOutput& out, RuntimeCommand const& param) {
-    if (!ensure_lease_origin(ori, out)) return;
+    if (!ensure_origin_console_or_player(ori, out)) return;
     if (!ensure_admin(ori, out)) return;
 
     auto land = resolve_lease_land(ori, out, param);
@@ -514,7 +514,7 @@ void admin_force_freeze_or_recycle(CommandOrigin const& ori, CommandOutput& out,
 }
 
 void admin_clean_lease(CommandOrigin const& ori, CommandOutput& out, RuntimeCommand const& param) {
-    if (!ensure_lease_origin(ori, out)) return;
+    if (!ensure_origin_console_or_player(ori, out)) return;
     if (!ensure_admin(ori, out)) return;
 
     auto days = std::get<int>(param["days"].value());
@@ -528,7 +528,7 @@ void admin_clean_lease(CommandOrigin const& ori, CommandOutput& out, RuntimeComm
 }
 
 void admin_to_bought(CommandOrigin const& ori, CommandOutput& out, RuntimeCommand const& param) {
-    if (!ensure_lease_origin(ori, out)) return;
+    if (!ensure_origin_console_or_player(ori, out)) return;
     if (!ensure_admin(ori, out)) return;
 
     auto land = resolve_lease_land(ori, out, param);
@@ -543,7 +543,7 @@ void admin_to_bought(CommandOrigin const& ori, CommandOutput& out, RuntimeComman
 }
 
 void admin_to_leased(CommandOrigin const& ori, CommandOutput& out, RuntimeCommand const& param) {
-    if (!ensure_lease_origin(ori, out)) return;
+    if (!ensure_origin_console_or_player(ori, out)) return;
     if (!ensure_admin(ori, out)) return;
 
     auto land = resolve_lease_land(ori, out, param);
@@ -560,6 +560,19 @@ void admin_to_leased(CommandOrigin const& ori, CommandOutput& out, RuntimeComman
     } else {
         feedback_utils::sendError(out, exp.error());
     }
+}
+
+void admin_snapshot_db(CommandOrigin const& ori, CommandOutput& out, RuntimeCommand const& param) {
+    if (!ensure_origin_console_or_player(ori, out)) return;
+    if (!ensure_admin(ori, out)) return;
+
+    std::optional<std::string> dirName;
+    if (auto& dir = param["dirName"]) {
+        dirName = std::get<std::string>(dir.value());
+    }
+
+    PLand::getInstance().getLandRegistry().createSnapshot(dirName);
+    feedback_utils::sendText(out, "The task has been created, please wait for it to complete..."_tr());
 }
 
 }; // namespace handlers
@@ -683,6 +696,13 @@ bool LandCommand::setup() {
             .optional("id", ll::command::ParamKind::Int)
             .execute(&handlers::admin_to_leased);
     }
+
+    // pland admin snapshot_db [dirName: string] 备份领地数据库
+    h.runtimeOverload()
+        .text("admin")
+        .text("snapshot_db")
+        .optional("dirName", ll::command::ParamKind::String)
+        .execute(&handlers::admin_snapshot_db);
 
 #ifdef LD_DEVTOOL
     // pland devtool

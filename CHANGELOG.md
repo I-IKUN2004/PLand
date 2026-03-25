@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### ✨ 新增功能
 
 - 租赁模式 @engsr6982 #154
+- 数据库快照 @engsr6982 #165
 
 ### 🐛 问题修复
 

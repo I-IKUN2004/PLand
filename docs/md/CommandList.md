@@ -281,6 +281,22 @@ PLand 提供以下命令进行交互
 | 所需权限 | 管理员                             |
 | 额外依赖 | 配置文件 `business.leasing.enabled` |
 
+### `pland admin snapshot_db [dirName: string]`
+
+**对数据库创建快照(异步)**
+
+- `dirName` 快照保存目录名 (如果留空则使用时间戳)
+
+> 所有快照均保存在 `plugins/PLand/data/snapshots/<dirName>` 目录下
+>
+> 如果任务未完成，目录下会存在 `.incomplete` 文件，表示任务正在进行中
+
+| 项目   | 说明       |
+|------|----------|
+| 执行主体 | 控制台 / 玩家 |
+| 所需权限 | 管理员      |
+| 额外依赖 | /        |
+
 ## 已移除命令
 
 ### `/pland import <clearDb: Boolean> <relationship_file: string> <data_file: string>`
