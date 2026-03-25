@@ -80,15 +80,15 @@ inline bool _hasMemberOrGuestPermission(
     }
 
     auto entry = land->getPermTable().role.*pointer;
-    TRACE_LOG("unknown: member={}, guest={}", entry.member ? "allowed" : "denied", entry.guest ? "allowed" : "denied");
+    TRACE_LOG("unknown: member={}, actor={}", entry.member ? "allowed" : "denied", entry.actor ? "allowed" : "denied");
 
     if (land->isLeaseFrozen()) {
-        TRACE_LOG("land is frozen, fallback to guest");
-        return entry.guest; // 如果冻结, 不再允许 Member 特权，退化为 Guest
+        TRACE_LOG("land is frozen, fallback to actor");
+        return entry.actor; // 如果冻结, 不再允许 Member 特权，退化为 Actor
     }
 
-    if (entry.guest) {
-        TRACE_LOG("guest allowed");
+    if (entry.actor) {
+        TRACE_LOG("actor allowed");
         return true; // 短路: 如果访客允许，那么不必再查成员
     }
     if (!entry.member) {
@@ -144,11 +144,11 @@ inline bool hasGuestPermission(std::shared_ptr<Land> const& land) {
 
     auto entry = land->getPermTable().role.*Member;
     TRACE_LOG(
-        "check guest permission('{}'), result: {}",
+        "check actor permission('{}'), result: {}",
         reflect::extractTemplateInnerLeafName(__FUNCSIG__),
-        entry.guest ? "allowed" : "denied"
+        entry.actor ? "allowed" : "denied"
     );
-    return entry.guest;
+    return entry.actor;
 }
 
 

@@ -31,7 +31,7 @@ struct EnvironmentPerms final {
 struct RolePerms final {
     struct Entry final {
         bool member;
-        bool guest;
+        bool actor;
     };
     Entry allowDestroy{true, false};        // 允许破坏方块
     Entry allowPlace{true, false};          // 允许放置方块
@@ -85,6 +85,9 @@ struct RolePerms final {
     Entry useBeeNest{true, false};           // 使用蜂巢(蜂箱)
     Entry editFlowerPot{true, false};        // 编辑花盆
     Entry allowUseRangedWeapon{true, false}; // 允许使用远程武器(弓/弩)
+
+    // 新增权限(保持 ABI 稳定，不在前面插入字段，避免 LRCA 需要重新编译)
+    // Entry allowTriggerDripleaf{true, true}; // 允许触发垂滴叶 // todo
 };
 struct LandPermTable final {
     EnvironmentPerms environment{};
@@ -93,7 +96,7 @@ struct LandPermTable final {
 
 // ! 注意：如果 LandContext 有更改，则必须递增 LandSchemaVersion，否则导致加载异常
 // 对于字段变动、重命名，请注册对应的 migrator 转换数据
-constexpr int LandSchemaVersion = 30;
+constexpr int LandSchemaVersion = 31;
 struct LandContext {
     int                      version{LandSchemaVersion};            // 版本号
     LandAABB                 mPos{};                                // 领地对角坐标

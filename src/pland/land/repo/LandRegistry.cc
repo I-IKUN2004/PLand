@@ -743,13 +743,13 @@ std::unordered_map<mce::UUID, std::unordered_set<std::shared_ptr<Land>>> LandReg
 LandPermType LandRegistry::getPermType(mce::UUID const& uuid, LandID id, bool includeOperator) const {
     std::shared_lock lock(impl->mMutex);
 
-    if (includeOperator && isOperator(uuid)) return LandPermType::Operator;
+    if (includeOperator && isOperator(uuid)) return LandPermType::Admin;
 
     if (auto land = getLand(id); land) {
         return land->getPermType(uuid);
     }
 
-    return LandPermType::Guest;
+    return LandPermType::Actor;
 }
 
 

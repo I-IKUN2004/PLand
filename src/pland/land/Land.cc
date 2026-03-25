@@ -250,11 +250,11 @@ bool Land::isCollision(BlockPos const& pos1, BlockPos const& pos2) const {
 
 LandPermType Land::getPermType(mce::UUID const& uuid) const {
     if (isLeaseFrozen()) {
-        return LandPermType::Guest;
+        return LandPermType::Actor;
     }
     if (isOwner(uuid)) return LandPermType::Owner;
     if (isMember(uuid)) return LandPermType::Member;
-    return LandPermType::Guest;
+    return LandPermType::Actor;
 }
 
 void Land::migrateOwner(mce::UUID const& ownerUUID) {
