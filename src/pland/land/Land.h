@@ -21,6 +21,9 @@ class LandHierarchyService;
 class LandManagementService;
 } // namespace service
 
+namespace observer {
+class ILandObserver;
+}
 
 class Land final : std::enable_shared_from_this<Land> {
 public:
@@ -43,6 +46,7 @@ public:
         return std::make_shared<Land>(std::forward<Args>(args)...);
     }
 
+    LDNDAPI observer::ILandObserver* tryGetObserver() const;
 
     LDNDAPI LandAABB const& getAABB() const;
 
@@ -88,7 +92,7 @@ public:
      * @note 此函数拒绝添加 Owner 为 Member
      */
     LDNDAPI bool addLandMember(mce::UUID const& uuid);
-    LDAPI void   removeLandMember(mce::UUID const& uuid);
+    LDNDAPI bool removeLandMember(mce::UUID const& uuid);
 
     LDAPI void clearMembers();
 
@@ -290,6 +294,7 @@ private:
      */
     bool _setAABB(LandAABB const& newRange);
 
+    void setObserver(observer::ILandObserver* observer);
 
     friend class LandRegistry;
     friend class TransactionContext;

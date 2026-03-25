@@ -15,7 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 修复 DevTool 领地编辑器非等宽字体显示错位 @engsr6982
 
-### 🧹 其他改动
+### 🚀 性能优化
+
+- 新增领地 Owner、Member 索引优化性能 @engsr6982 #204
+
+### 🧩 其他改动
 
 - 重构配置文件结构 @engsr6982
 
@@ -27,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PlayerRenewLandEvent` - 玩家续租领地事件
 - `LandStateChangedEvent` - 领地状态变更事件
 - `LandRecycleEvent` - 领地被回收事件
+- `MembersClearedEvent` - 领地成员清空事件
 
 ## [0.18.2] - 2026-03-01
 

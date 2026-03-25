@@ -7,6 +7,7 @@
 #include "pland/land/Config.h"
 #include "pland/utils/JsonUtil.h"
 #include "repo/LandContext.h"
+#include "observer/ILandObserver.h"
 
 #include <unordered_set>
 #include <vector>
@@ -17,6 +18,8 @@ namespace land {
 struct Land::Impl {
     LandContext  mContext;
     DirtyCounter mDirtyCounter;
+
+    observer::ILandObserver* mObserver{nullptr};
 
     // cache
     mutable std::optional<mce::UUID>      mCacheOwner;
@@ -81,9 +84,15 @@ mce::UUID const& Land::getOwner() const {
     return *impl->mCacheOwner;
 }
 void Land::setOwner(mce::UUID const& uuid) {
-    impl->mCacheOwner         = uuid;
-    impl->mContext.mLandOwner = uuid.asString();
-    impl->mDirtyCounter.increment();
+    auto old = impl->mCacheOwner.value_or(mce::UUID::EMPTY());
+    if (uuid != old) {
+        impl->mCacheOwner         = uuid;
+        impl->mContext.mLandOwner = uuid.asString();
+        markDirty();
+        if (auto observer = tryGetObserver()) {
+            observer->onOwnerChanged(shared_from_this(), old, uuid);
+        }
+    }
 }
 std::string const& Land::getRawOwner() const { return impl->mContext.mLandOwner; }
 bool               Land::isSystemOwned() const {
@@ -93,24 +102,38 @@ bool               Land::isSystemOwned() const {
 }
 
 std::unordered_set<mce::UUID> const& Land::getMembers() const { return impl->mCacheMembers; }
-bool                                 Land::addLandMember(mce::UUID const& uuid) {
-    if (isOwner(uuid)) {
+
+bool Land::addLandMember(mce::UUID const& uuid) {
+    if (isOwner(uuid) || isMember(uuid)) {
         return false;
     }
     impl->mCacheMembers.insert(uuid);
     impl->mContext.mLandMembers.emplace_back(uuid.asString());
-    impl->mDirtyCounter.increment();
+    markDirty();
+    if (auto observer = tryGetObserver()) {
+        observer->onMemberAdded(shared_from_this(), uuid);
+    }
     return true;
 }
-void Land::removeLandMember(mce::UUID const& uuid) {
+bool Land::removeLandMember(mce::UUID const& uuid) {
+    if (!isMember(uuid)) {
+        return false;
+    }
     impl->mCacheMembers.erase(uuid);
     std::erase_if(impl->mContext.mLandMembers, [uuid = uuid.asString()](auto const& u) { return u == uuid; });
-    impl->mDirtyCounter.increment();
+    markDirty();
+    if (auto observer = tryGetObserver()) {
+        observer->onMemberRemoved(shared_from_this(), uuid);
+    }
+    return true;
 }
 void Land::clearMembers() {
     impl->mCacheMembers.clear();
     impl->mContext.mLandMembers.clear();
-    impl->mDirtyCounter.increment();
+    markDirty();
+    if (auto observer = tryGetObserver()) {
+        observer->onMembersCleared(shared_from_this());
+    }
 }
 
 std::string const& Land::getName() const { return impl->mContext.mLandName; }
@@ -267,6 +290,12 @@ bool Land::_setAABB(LandAABB const& newRange) {
     impl->mContext.mPos = newRange;
     markDirty();
     return true;
+}
+
+observer::ILandObserver* Land::tryGetObserver() const { return impl->mObserver; }
+void                     Land::setObserver(observer::ILandObserver* observer) {
+    assert(observer != nullptr);
+    impl->mObserver = observer;
 }
 
 } // namespace land

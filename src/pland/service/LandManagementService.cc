@@ -269,16 +269,6 @@ ll::Expected<> LandManagementService::setLandName(Player& player, std::shared_pt
     return {};
 }
 
-ll::Expected<> LandManagementService::changeOwner(std::shared_ptr<Land> const& land, mce::UUID const& newOwner) {
-    auto oldOwner = land->getOwner();
-    if (oldOwner == newOwner) {
-        return {};
-    }
-    land->setOwner(newOwner);
-    ll::event::EventBus::getInstance().publish(event::OwnerChangedEvent{land, oldOwner, newOwner});
-    return {};
-}
-
 ll::Expected<> LandManagementService::transferLand(Player& player, std::shared_ptr<Land> const& land, Player& target) {
     return transferLand(player, land, target.getUuid());
 }
@@ -305,9 +295,7 @@ LandManagementService::transferLand(Player& player, std::shared_ptr<Land> const&
         return ll::makeStringError("操作失败，请求被取消"_trl(player.getLocaleCode()));
     }
 
-    if (auto expected = changeOwner(land, target); !expected) {
-        return expected;
-    }
+    land->setOwner(target);
 
     ll::event::EventBus::getInstance().publish(event::PlayerTransferLandAfterEvent{player, land, target});
     return {};
@@ -353,8 +341,17 @@ ll::Expected<> LandManagementService::_playerChangeMember(
     mce::UUID const&             target,
     bool                         isAdd
 ) {
-    if (isAdd && land->isOwner(target)) {
-        return ll::makeStringError("操作失败，领地主人不能被添加为成员"_trl(player.getLocaleCode()));
+    if (isAdd) {
+        if (land->isOwner(target)) {
+            return ll::makeStringError("操作失败，领地主人不能被添加为成员"_trl(player.getLocaleCode()));
+        }
+        if (land->isMember(target)) {
+            return ll::makeStringError("操作失败，该玩家已经是领地成员"_trl(player.getLocaleCode()));
+        }
+    } else {
+        if (!land->isMember(target)) {
+            return ll::makeStringError("操作失败，该玩家不是领地成员"_trl(player.getLocaleCode()));
+        }
     }
 
     auto event = event::PlayerChangeLandMemberBeforeEvent{player, land, target, isAdd};
@@ -363,38 +360,16 @@ ll::Expected<> LandManagementService::_playerChangeMember(
         return ll::makeStringError("操作失败，请求被取消"_trl(player.getLocaleCode()));
     }
 
-    auto result = _changeMember(land, target, isAdd);
-    switch (result) {
-    case ChangeMemberResult::Success:
-        break;
-    case ChangeMemberResult::AlreadyMember:
-        return ll::makeStringError("操作失败，该玩家已经是领地成员"_trl(player.getLocaleCode()));
-    case ChangeMemberResult::NotMember:
-        return ll::makeStringError("操作失败，该玩家不是领地成员"_trl(player.getLocaleCode()));
-    default:
-        return ll::makeStringError("操作失败，未知错误"_trl(player.getLocaleCode()));
-    }
+    auto result = isAdd ? land->addLandMember(target) : land->removeLandMember(target);
 
-    ll::event::EventBus::getInstance().publish(event::PlayerChangeLandMemberAfterEvent{player, land, target, isAdd});
+    if (result) {
+        ll::event::EventBus::getInstance().publish(
+            event::PlayerChangeLandMemberAfterEvent{player, land, target, isAdd}
+        );
+    }
     return {};
 }
 
-LandManagementService::ChangeMemberResult
-LandManagementService::_changeMember(std::shared_ptr<Land> const& land, mce::UUID const& target, bool isAdd) {
-    using ll::operator""_trl;
-    bool isMember = land->isMember(target);
-    if (isAdd && isMember) {
-        return ChangeMemberResult::AlreadyMember;
-    }
-    if (!isAdd && !isMember) {
-        return ChangeMemberResult::NotMember;
-    }
-
-    isAdd ? (void)land->addLandMember(target) : land->removeLandMember(target);
-
-    ll::event::EventBus::getInstance().publish(event::MemberChangedEvent{land, target, isAdd});
-    return ChangeMemberResult::Success;
-}
 
 ll::Expected<> LandManagementService::_ensureChangeRangelegal(
     std::shared_ptr<Land> const&    land,
