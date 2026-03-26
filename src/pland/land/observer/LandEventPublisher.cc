@@ -1,5 +1,6 @@
 #include "LandEventPublisher.h"
 
+#include "pland/events/domain/LandStateChangedEvent.h"
 #include "pland/events/domain/MemberChangedEvent.h"
 #include "pland/events/domain/OwnerChangedEvent.h"
 
@@ -28,6 +29,16 @@ void LandEventPublisher::onMemberRemoved(std::shared_ptr<Land> const& land, mce:
 
 void LandEventPublisher::onMembersCleared(std::shared_ptr<Land> const& land) {
     ll::event::EventBus::getInstance().publish(event::MembersClearedEvent{land});
+}
+
+void LandEventPublisher::onLeaseStateChanged(
+    std::shared_ptr<Land> const& land,
+    LeaseState                   oldState,
+    LeaseState                   newState
+) {
+    if (oldState != newState) {
+        ll::event::EventBus::getInstance().publish(event::LandStateChangedEvent{land, oldState, newState});
+    }
 }
 
 

@@ -2,12 +2,12 @@
 
 #include "mc/platform/UUID.h"
 
+#include "observer/ILandObserver.h"
 #include "pland/Global.h"
 #include "pland/PLand.h"
 #include "pland/land/Config.h"
 #include "pland/utils/JsonUtil.h"
 #include "repo/LandContext.h"
-#include "observer/ILandObserver.h"
 
 #include <unordered_set>
 #include <vector>
@@ -163,8 +163,14 @@ void Land::setHoldType(LandHoldType type) {
     impl->mDirtyCounter.increment();
 }
 void Land::setLeaseState(LeaseState state) {
-    impl->mContext.mLeasing.mState = state;
-    impl->mDirtyCounter.increment();
+    auto old = impl->mContext.mLeasing.mState;
+    if (old != state) {
+        impl->mContext.mLeasing.mState = state;
+        impl->mDirtyCounter.increment();
+        if (auto observer = tryGetObserver()) {
+            observer->onLeaseStateChanged(shared_from_this(), old, state);
+        }
+    }
 }
 void Land::setLeaseStartAt(time_t ts) {
     impl->mContext.mLeasing.mStartAt = ts;

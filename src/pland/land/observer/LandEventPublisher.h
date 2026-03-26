@@ -16,6 +16,8 @@ public:
     void onMemberRemoved(std::shared_ptr<Land> const& land, mce::UUID const& member) override;
 
     void onMembersCleared(std::shared_ptr<Land> const& land) override;
+
+    void onLeaseStateChanged(std::shared_ptr<Land> const& land, LeaseState oldState, LeaseState newState) override;
 };
 
 } // namespace land::observer
