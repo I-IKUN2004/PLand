@@ -25,7 +25,7 @@ namespace observer {
 class ILandObserver;
 }
 
-class Land final : std::enable_shared_from_this<Land> {
+class Land final : public std::enable_shared_from_this<Land> {
 public:
     LD_DISABLE_COPY(Land);
 
