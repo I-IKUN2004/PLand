@@ -7,7 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.19.0-beta.1] - 2026-03-10
+## [0.19.0-rc.1] - 2026-03-25
+
+### 🐛 问题修复
+
+- 修复继承错误导致的 Land 部分接口调用崩溃 @engsr6982
+
+## [0.19.0-beta.1] - 2026-03-27
 
 ### ✨ 新增功能
 
