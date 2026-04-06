@@ -29,8 +29,7 @@ void InterceptorConfig::save(std::filesystem::path configDir) {
     ll::config::saveConfig(cfg, path);
 }
 
-absl::flat_hash_map<HashedString, RolePerms::Entry RolePerms::*, HashedStringHash, HashedStringEq>
-    DynamicRuleMap = {};
+absl::flat_hash_map<HashedString, RolePerms::Entry RolePerms::*, HashedStringHash, HashedStringEq> DynamicRuleMap = {};
 
 void InterceptorConfig::_buildDynamicRuleMap() {
 #define DECL_PERM_FIELD(T) {reflect::getTemplateInnerLeafName<&T>(), &T}
@@ -254,45 +253,67 @@ decltype(InterceptorConfig::cfg) InterceptorConfig::cfg = [] {
     auto useBeeNest          = std::string{reflect::getTemplateInnerLeafName<&RolePerms::useBeeNest>()};
     config.rules.block       = {
         /*特殊方块关联*/
-        {                     "minecraft:chest",        useContainer}, // 箱子
-        {             "minecraft:trapped_chest",        useContainer}, // 漏斗箱
-        {                  "minecraft:campfire",         useCampfire}, // 营火
-        {             "minecraft:soul_campfire",         useCampfire}, // 灵魂营火
-        {                 "minecraft:composter",        useComposter}, // 堆肥桶
-        {                 "minecraft:noteblock",        useNoteBlock}, // 音符盒
-        {                   "minecraft:jukebox",          useJukebox}, // 唱片机
-        {                      "minecraft:bell",             useBell}, // 钟
-        {"minecraft:daylight_detector_inverted", useDaylightDetector}, // 反转阳光探测器
-        {         "minecraft:daylight_detector", useDaylightDetector}, // 阳光探测器
-        {                   "minecraft:lectern",          useLectern}, // 讲台
-        {                  "minecraft:cauldron",         useCauldron}, // 炼药锅
-        {            "minecraft:respawn_anchor",    useRespawnAnchor}, // 重生锚
-        {                "minecraft:flower_pot",       editFlowerPot}, // 花盆
-        {          "minecraft:sweet_berry_bush",        allowDestroy}, // 甜莓丛
+        {                       "minecraft:chest",        useContainer}, // 箱子
+        {               "minecraft:trapped_chest",        useContainer}, // 陷阱箱
+        {        "minecraft:exposed_copper_chest",        useContainer},
+        {       "minecraft:oxidized_copper_chest",        useContainer},
+        {          "minecraft:waxed_copper_chest",        useContainer},
+        {  "minecraft:waxed_exposed_copper_chest",        useContainer},
+        { "minecraft:waxed_oxidized_copper_chest",        useContainer},
+        {"minecraft:waxed_weathered_copper_chest",        useContainer},
+        {      "minecraft:weathered_copper_chest",        useContainer},
+        {                    "minecraft:campfire",         useCampfire}, // 营火
+        {               "minecraft:soul_campfire",         useCampfire}, // 灵魂营火
+        {                   "minecraft:composter",        useComposter}, // 堆肥桶
+        {                   "minecraft:noteblock",        useNoteBlock}, // 音符盒
+        {                     "minecraft:jukebox",          useJukebox}, // 唱片机
+        {                        "minecraft:bell",             useBell}, // 钟
+        {  "minecraft:daylight_detector_inverted", useDaylightDetector}, // 反转阳光探测器
+        {           "minecraft:daylight_detector", useDaylightDetector}, // 阳光探测器
+        {                     "minecraft:lectern",          useLectern}, // 讲台
+        {                    "minecraft:cauldron",         useCauldron}, // 炼药锅
+        {              "minecraft:respawn_anchor",    useRespawnAnchor}, // 重生锚
+        {                  "minecraft:flower_pot",       editFlowerPot}, // 花盆
+        {            "minecraft:sweet_berry_bush",        allowDestroy}, // 甜莓丛
         /*功能类方块关联*/
-        {         "minecraft:cartography_table",      useWorkstation}, // 制图台
-        {            "minecraft:smithing_table",      useWorkstation}, // 锻造台
-        {             "minecraft:brewing_stand",      useWorkstation}, // 酿造台
-        {                     "minecraft:anvil",      useWorkstation}, // 铁砧
-        {                "minecraft:grindstone",      useWorkstation}, // 砂轮
-        {          "minecraft:enchanting_table",      useWorkstation}, // 附魔台
-        {                      "minecraft:loom",      useWorkstation}, // 织布机
-        {         "minecraft:stonecutter_block",      useWorkstation}, // 切石机
-        {                   "minecraft:crafter",      useWorkstation}, // 合成器
-        {        "minecraft:chiseled_bookshelf",        useContainer}, // 雕纹书架
-        {                    "minecraft:barrel",        useContainer}, // 木桶/存储桶
-        {                    "minecraft:hopper",        useContainer}, // 漏斗
-        {                   "minecraft:dropper",        useContainer}, // 投掷器
-        {                 "minecraft:dispenser",        useContainer}, // 发射器
-        {                     "minecraft:vault",        useContainer}, // 宝库
-        {                    "minecraft:beacon",           useBeacon}, // 信标
-        {                      "minecraft:cake",             useCake}, // 蛋糕
-        {      "minecraft:unpowered_comparator",       useComparator}, // 红石比较器（未充能）
-        {        "minecraft:powered_comparator",       useComparator}, // 红石比较器（充能）
-        {        "minecraft:unpowered_repeater",         useRepeater}, // 红石中继器（未充能）
-        {          "minecraft:powered_repeater",         useRepeater}, // 红石中继器（充能）
-        {                  "minecraft:bee_nest",          useBeeNest}, // 蜂巢
-        {                   "minecraft:beehive",          useBeeNest}, // 蜂箱
+        {           "minecraft:cartography_table",      useWorkstation}, // 制图台
+        {              "minecraft:smithing_table",      useWorkstation}, // 锻造台
+        {               "minecraft:brewing_stand",      useWorkstation}, // 酿造台
+        {                       "minecraft:anvil",      useWorkstation}, // 铁砧
+        {                  "minecraft:grindstone",      useWorkstation}, // 砂轮
+        {            "minecraft:enchanting_table",      useWorkstation}, // 附魔台
+        {                        "minecraft:loom",      useWorkstation}, // 织布机
+        {           "minecraft:stonecutter_block",      useWorkstation}, // 切石机
+        {                     "minecraft:crafter",      useWorkstation}, // 合成器
+        {          "minecraft:chiseled_bookshelf",        useContainer}, // 雕纹书架
+
+        // 展示架
+        {                "minecraft:acacia_shelf",        useContainer},
+        {                "minecraft:bamboo_shelf",        useContainer},
+        {                 "minecraft:birch_shelf",        useContainer},
+        {                "minecraft:cherry_shelf",        useContainer},
+        {               "minecraft:crimson_shelf",        useContainer},
+        {              "minecraft:dark_oak_shelf",        useContainer},
+        {                "minecraft:jungle_shelf",        useContainer},
+        {              "minecraft:mangrove_shelf",        useContainer},
+        {                   "minecraft:oak_shelf",        useContainer},
+        {              "minecraft:pale_oak_shelf",        useContainer},
+        {                "minecraft:spruce_shelf",        useContainer},
+        {                "minecraft:warped_shelf",        useContainer},
+        /**/
+
+        {                      "minecraft:hopper",        useContainer}, // 漏斗
+        {                     "minecraft:dropper",        useContainer}, // 投掷器
+        {                   "minecraft:dispenser",        useContainer}, // 发射器
+        {                       "minecraft:vault",        useContainer}, // 宝库
+        {                      "minecraft:beacon",           useBeacon}, // 信标
+        {                        "minecraft:cake",             useCake}, // 蛋糕
+        {        "minecraft:unpowered_comparator",       useComparator}, // 红石比较器（未充能）
+        {          "minecraft:powered_comparator",       useComparator}, // 红石比较器（充能）
+        {          "minecraft:unpowered_repeater",         useRepeater}, // 红石中继器（未充能）
+        {            "minecraft:powered_repeater",         useRepeater}, // 红石中继器（充能）
+        {                    "minecraft:bee_nest",          useBeeNest}, // 蜂巢
+        {                     "minecraft:beehive",          useBeeNest}, // 蜂箱
     };
 
     config.rules.mob.allowHostileDamage = {
