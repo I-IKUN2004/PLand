@@ -10,6 +10,16 @@
 
 namespace land::internal::interceptor {
 
+struct HashedStringHash {
+    size_t operator()(HashedString const& value) const noexcept { return value.getHash(); }
+};
+
+struct HashedStringEq {
+    bool operator()(HashedString const& lhs, HashedString const& rhs) const noexcept {
+        return lhs.getHash() == rhs.getHash() && lhs.getString() == rhs.getString();
+    }
+};
+
 struct InterceptorConfig {
     inline static int SchemaVersion = 3;
 
@@ -49,7 +59,6 @@ struct InterceptorConfig {
     } listeners;
 
     struct Hooks {
-        bool MobHurtHook{true};                    // 生物受伤
         bool FishingHookHitHook{true};             // 钓鱼钩击中
         bool LayEggGoalHook{true};                 // 海龟产卵
         bool FireBlockBurnHook{true};              // 火焰蔓延
@@ -71,7 +80,7 @@ struct InterceptorConfig {
     struct Rules {
         using Mapping = std::unordered_map<std::string, std::string>; // TypeName -> Permission
         struct Mob {
-            using TypeNamesSet = std::unordered_set<HashedString>;
+            using TypeNamesSet = std::unordered_set<HashedString, HashedStringHash, HashedStringEq>;
             TypeNamesSet allowHostileDamage;
             TypeNamesSet allowFriendlyDamage;
             TypeNamesSet allowSpecialEntityDamage;
@@ -88,7 +97,7 @@ struct InterceptorConfig {
     static void save(std::filesystem::path configDir);
 
     static void             _buildDynamicRuleMap();
-    static RolePerms::Entry RolePerms::* lookupDynamicRule(HashedString const& typeName);
+    static RolePerms::Entry RolePerms::*lookupDynamicRule(HashedString const& typeName);
 
     static void tryMigrate(std::filesystem::path configDir);
 };
