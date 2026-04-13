@@ -13,11 +13,11 @@ using ll::form::SimpleForm;
 
 struct AdvancedLandPicker::Impl : std::enable_shared_from_this<Impl> {
     enum class View {
-        All = 0,      // 所有领地视图
-        OnlyOrdinary, // 普通领地视图
-        OnlyParent,   // 父领地视图
-        OnlyMix,      // 混合领地视图
-        OnlySub,      // 子领地视图
+        All = 0,      
+        OnlyOrdinary, 
+        OnlyParent,   
+        OnlyMix,      
+        OnlySub,      
     };
 
     std::vector<std::shared_ptr<Land>> mData;
@@ -34,17 +34,17 @@ struct AdvancedLandPicker::Impl : std::enable_shared_from_this<Impl> {
     std::string getViewName(View view, std::string const& localeCode) {
         switch (view) {
         case View::All:
-            return "过滤: >全部领地<"_trl(localeCode);
+            return "§l§a▶ 全部领地\n§r§8[ 显示您的所有资产 ]"_trl(localeCode);
         case View::OnlyOrdinary:
-            return "过滤: >普通领地<"_trl(localeCode);
+            return "§l§b▶ 普通领地\n§r§8[ 仅显示基础圈地 ]"_trl(localeCode);
         case View::OnlyParent:
-            return "过滤: >父领地<"_trl(localeCode);
+            return "§l§e▶ 父领地\n§r§8[ 包含子区域的领地 ]"_trl(localeCode);
         case View::OnlyMix:
-            return "过滤: >混合领地<"_trl(localeCode);
+            return "§l§6▶ 混合领地\n§r§8[ 复合权限领地区块 ]"_trl(localeCode);
         case View::OnlySub:
-            return "过滤: >子领地<"_trl(localeCode);
+            return "§l§d▶ 子领地\n§r§8[ 位于父领地内的分区 ]"_trl(localeCode);
         default:
-            return "未知视图"_trl(localeCode);
+            return "§c未知视图"_trl(localeCode);
         }
     }
 
@@ -56,7 +56,7 @@ struct AdvancedLandPicker::Impl : std::enable_shared_from_this<Impl> {
             [data = shared_from_this()](Player& player) { data->nextView(player); }
         );
         form.appendButton(
-            "模糊搜索"_trl(localeCode),
+            "§l§2 模糊搜索\n§r§8[ 通过关键词快速查找 ]"_trl(localeCode),
             "textures/ui/magnifyingGlass",
             "path",
             [data = shared_from_this()](Player& player) { data->sendFuzzySearch(player); }
@@ -67,8 +67,8 @@ struct AdvancedLandPicker::Impl : std::enable_shared_from_this<Impl> {
         auto localeCode = player.getLocaleCode();
         SimpleInputForm::sendTo(
             player,
-            "[PLand] | 领地选择器-模糊搜索"_trl(localeCode),
-            "请输入搜索关键字"_trl(localeCode),
+            "§l§d[星辰] §5领地模糊搜索"_trl(localeCode),
+            "§7请输入您要查找的领地关键字："_trl(localeCode),
             mFuzzyKeyword.value_or(""),
             [data = shared_from_this()](Player& player, std::string keyword) {
                 if (keyword.empty()) {
@@ -98,8 +98,8 @@ struct AdvancedLandPicker::Impl : std::enable_shared_from_this<Impl> {
     }
 
     void buildView(PaginatedForm& form, View view, std::string const& localeCode) {
-        form.setTitle("[PLand] | 领地选择器"_trl(localeCode));
-        form.setContent("请选择一个领地"_trl(localeCode));
+        form.setTitle("§l§d[星辰] §5领地选择器"_trl(localeCode));
+        form.setContent("§b✧ 您的星辰资产库 ✧\n\n§7请点击选择您要管理的领地："_trl(localeCode));
         if (mBackCallback) {
             back_utils::injectBackButton(form, mBackCallback);
         }
@@ -116,15 +116,15 @@ struct AdvancedLandPicker::Impl : std::enable_shared_from_this<Impl> {
             if (land->isLeased()) {
                 auto state = land->getLeaseState();
                 if (state == LeaseState::Active) {
-                    leaseContent = time_utils::formatRemaining(land->getLeaseEndAt());
+                    leaseContent = " §8| §a剩余: " + time_utils::formatRemaining(land->getLeaseEndAt());
                 } else if (state == LeaseState::Frozen) {
-                    leaseContent = " | §e已冻结§r"_trl(localeCode);
+                    leaseContent = " §8| §c已冻结"_trl(localeCode);
                 } else {
-                    leaseContent = " | §c租赁过期§r"_trl(localeCode);
+                    leaseContent = " §8| §4租赁过期"_trl(localeCode);
                 }
             }
             form.appendButton(
-                "[{}] {}§r\n维度: {}{}§r"_trl(
+                "§l§3#{} §0{}\n§r§8维度: {}{}"_trl(
                     localeCode,
                     land->getId(),
                     land->getName(),
@@ -151,7 +151,7 @@ struct AdvancedLandPicker::Impl : std::enable_shared_from_this<Impl> {
 
     void nextView(Player& player) {
         if (mCurrentView == View::OnlySub) {
-            sendView(player, View::All); // 回到初始视图
+            sendView(player, View::All); 
             return;
         }
         sendView(player, static_cast<View>(static_cast<int>(mCurrentView) + 1));
@@ -159,7 +159,6 @@ struct AdvancedLandPicker::Impl : std::enable_shared_from_this<Impl> {
 
     void sendTo(Player& player) { sendView(player, View::All); }
 };
-
 
 void AdvancedLandPicker::sendTo(
     Player&                            player,
@@ -171,5 +170,5 @@ void AdvancedLandPicker::sendTo(
     impl->sendTo(player);
 }
 
-} // namespace gui
-} // namespace land
+} 
+}
