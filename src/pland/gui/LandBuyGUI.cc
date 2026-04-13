@@ -21,12 +21,10 @@
 #include "pland/utils/FeedbackUtils.h"
 #include "utils/BackUtils.h"
 
-
 #include <climits>
 #include <ll/api/form/CustomForm.h>
 #include <ll/api/form/SimpleForm.h>
 #include <string>
-
 
 namespace land::gui {
 
@@ -35,13 +33,13 @@ void LandBuyGUI::sendTo(Player& player) {
 
     auto manager = land::PLand::getInstance().getSelectorManager();
     if (!manager->hasSelector(player)) {
-        feedback_utils::sendErrorText(player, "请先使用 /pland new 来选择领地"_trl(localeCode));
+        feedback_utils::sendErrorText(player, "§e[星辰] §c请先使用 /pland new 来选择领地"_trl(localeCode));
         return;
     }
 
     auto selector = manager->getSelector(player);
     if (!selector->isPointABSet()) {
-        feedback_utils::sendErrorText(player, "您还没有选择领地范围，无法进行购买!"_trl(localeCode));
+        feedback_utils::sendErrorText(player, "§e[星辰] §c您还没有选择领地范围，无法进行购买!"_trl(localeCode));
         return;
     }
 
@@ -58,10 +56,10 @@ void LandBuyGUI::_chooseHoldType(Player& player, OrdinaryLandCreateSelector* def
         auto fm = ll::form::ModalForm{};
 
         auto localeCode = player.getLocaleCode();
-        fm.setTitle("[PLand] | 购买/租赁"_trl(localeCode));
-        fm.setContent("请选择领地购买模式"_trl(localeCode));
-        fm.setUpperButton("永久买断"_trl(localeCode));
-        fm.setLowerButton("租赁模式"_trl(localeCode));
+        fm.setTitle("§l§d[星辰] §5购买与租赁"_trl(localeCode));
+        fm.setContent("§7请选择领地购买模式:"_trl(localeCode));
+        fm.setUpperButton("§l§2▶ 永久买断\n§r§8[一次性付费]"_trl(localeCode));
+        fm.setLowerButton("§l§9▶ 租赁模式\n§r§8[按天数计费]"_trl(localeCode));
         fm.sendTo(player, [def](Player& player, ll::form::ModalFormResult result, ll::form::FormCancelReason) {
             if (!result) {
                 return;
@@ -83,11 +81,11 @@ void LandBuyGUI::_impl(Player& player, OrdinaryLandCreateSelector* selector) {
 
     auto const volume = range->getVolume();
     if (volume >= INT_MAX) {
-        feedback_utils::sendErrorText(player, "领地体积过大，无法购买"_trl(localeCode));
+        feedback_utils::sendErrorText(player, "§e[星辰] §c领地体积过大，无法购买!"_trl(localeCode));
         return;
     }
 
-    std::string content = "领地类型: {}\n体积: {}x{}x{} = {}\n范围: {}"_trl(
+    std::string content = "§b领地类型: §f{}\n§b体积规模: §f{}x{}x{} = {}\n§b圈地范围: §f{}"_trl(
         localeCode,
         is3D ? "3D" : "2D",
         range->getBlockCountX(),
@@ -102,37 +100,37 @@ void LandBuyGUI::_impl(Player& player, OrdinaryLandCreateSelector* selector) {
         auto& service = PLand::getInstance().getServiceLocator().getLandPriceService();
         if (auto result = service.getOrdinaryLandPrice(*range, selector->getDimensionId(), is3D)) {
             discountedPrice  = result->mDiscountedPrice;
-            content         += "\n原价: {}\n折扣价: {}\n{}"_trl(
+            content         += "\n\n§8[ 价格明细 ]\n§7原价: §c{}\n§7折扣价: §a{}\n§e{}"_trl(
                 localeCode,
                 result->mOriginalPrice,
                 result->mDiscountedPrice,
                 EconomySystem::getInstance().getCostMessage(player, result->mDiscountedPrice)
             );
         } else {
-            feedback_utils::sendErrorText(player, "价格表达式解析失败，请联系管理员"_trl(localeCode));
+            feedback_utils::sendErrorText(player, "§e[星辰] §c价格表达式解析失败，请联系管理员!"_trl(localeCode));
             PLand::getInstance().getSelf().getLogger().error(result.error().message());
             return;
         }
     }
 
     auto fm = ll::form::SimpleForm{};
-    fm.setTitle("[PLand] | 购买领地"_trl(localeCode));
+    fm.setTitle("§l§d[星辰] §5确认购买领地"_trl(localeCode));
     fm.setContent(content);
     fm.appendButton(
-        "确认购买"_trl(localeCode),
+        "§l§a✔ 确认购买"_trl(localeCode),
         "textures/ui/realms_green_check",
         "path",
         [discountedPrice, selector](Player& pl) {
             auto& service = PLand::getInstance().getServiceLocator().getLandManagementService();
             if (auto exp = service.buyLand(pl, selector, discountedPrice.value_or(0))) {
-                feedback_utils::notifySuccess(pl, "购买领地成功"_trl(pl.getLocaleCode()));
+                feedback_utils::notifySuccess(pl, "§e[星辰] §a购买领地成功！"_trl(pl.getLocaleCode()));
             } else {
                 feedback_utils::sendError(pl, exp.error());
             }
         }
     );
-    fm.appendButton("暂存订单"_trl(localeCode), "textures/ui/recipe_book_icon", "path"); // close
-    fm.appendButton("放弃订单"_trl(localeCode), "textures/ui/cancel", "path", [](Player& pl) {
+    fm.appendButton("§l§6⏸ 暂存订单"_trl(localeCode), "textures/ui/recipe_book_icon", "path");
+    fm.appendButton("§l§c✖ 放弃订单"_trl(localeCode), "textures/ui/cancel", "path", [](Player& pl) {
         land::PLand::getInstance().getSelectorManager()->stopSelection(pl);
     });
 
@@ -148,7 +146,7 @@ void LandBuyGUI::_chooseLeaseDays(Player& player, OrdinaryLandCreateSelector* se
 
     auto const volume = range->getVolume();
     if (volume >= INT_MAX) {
-        feedback_utils::sendErrorText(player, "领地体积过大，无法租赁"_trl(localeCode));
+        feedback_utils::sendErrorText(player, "§e[星辰] §c领地体积过大，无法租赁!"_trl(localeCode));
         return;
     }
 
@@ -158,7 +156,7 @@ void LandBuyGUI::_chooseLeaseDays(Player& player, OrdinaryLandCreateSelector* se
         is3D
     );
     if (!dailyExp) {
-        feedback_utils::sendErrorText(player, "价格表达式解析失败，请联系管理员"_trl(localeCode));
+        feedback_utils::sendErrorText(player, "§e[星辰] §c价格表达式解析失败，请联系管理员!"_trl(localeCode));
         PLand::getInstance().getSelf().getLogger().error(dailyExp.error().message());
         return;
     }
@@ -166,7 +164,7 @@ void LandBuyGUI::_chooseLeaseDays(Player& player, OrdinaryLandCreateSelector* se
 
     auto const& duration = ConfigProvider::getLeasingConfig().duration;
 
-    std::string baseInfo = "领地类型: {}\n体积: {}x{}x{} = {}\n范围: {}\n每日租金: {}"_trl(
+    std::string baseInfo = "§b领地类型: §f{}\n§b体积规模: §f{}x{}x{} = {}\n§b圈地范围: §f{}\n\n§8[ 价格明细 ]\n§7每日租金: §e{}"_trl(
         localeCode,
         is3D ? "3D" : "2D",
         range->getBlockCountX(),
@@ -178,17 +176,17 @@ void LandBuyGUI::_chooseLeaseDays(Player& player, OrdinaryLandCreateSelector* se
     );
 
     auto fm = ll::form::CustomForm{};
-    fm.setTitle("[PLand] | 租赁领地"_trl(localeCode));
+    fm.setTitle("§l§d[星辰] §5租赁领地配置"_trl(localeCode));
     fm.appendLabel(baseInfo);
     fm.appendSlider(
         "days",
-        "租赁天数"_trl(localeCode),
+        "§l§2▶ 租赁天数"_trl(localeCode),
         duration.minPeriod,
         duration.maxPeriod,
         1.0,
         duration.minPeriod
     );
-    fm.setSubmitButton("下一步"_trl(localeCode));
+    fm.setSubmitButton("§l§a▶ 下一步"_trl(localeCode));
     fm.sendTo(
         player,
         [selector, dailyRent, baseInfo](Player& pl, ll::form::CustomFormResult res, ll::form::FormCancelReason) {
@@ -212,7 +210,7 @@ void LandBuyGUI::_confirmLeaseDays(
     auto localeCode = player.getLocaleCode();
 
     std::string content = baseContent
-                        + "\n\n租赁天数: {}\n总租金: {}\n{}"_trl(
+                        + "\n\n§8[ 结算明细 ]\n§7租赁天数: §a{}\n§7总计租金: §e{}\n§6{}"_trl(
                               localeCode,
                               days,
                               totalPrice,
@@ -220,16 +218,16 @@ void LandBuyGUI::_confirmLeaseDays(
                         );
 
     auto confirm = ll::form::SimpleForm{};
-    confirm.setTitle("[PLand] | 确认租赁"_trl(localeCode));
+    confirm.setTitle("§l§d[星辰] §5确认租赁订单"_trl(localeCode));
     confirm.setContent(content);
     confirm.appendButton(
-        "确认租赁"_trl(localeCode),
+        "§l§a✔ 确认租赁"_trl(localeCode),
         "textures/ui/realms_green_check",
         "path",
         [selector, days](Player& pl2) {
             auto& service = PLand::getInstance().getServiceLocator().getLeasingService();
             if (auto exp = service.leaseLand(pl2, selector, days)) {
-                feedback_utils::notifySuccess(pl2, "租赁领地成功"_trl(pl2.getLocaleCode()));
+                feedback_utils::notifySuccess(pl2, "§e[星辰] §a租赁领地成功！"_trl(pl2.getLocaleCode()));
             } else {
                 feedback_utils::sendError(pl2, exp.error());
             }
@@ -247,14 +245,14 @@ void LandBuyGUI::_impl(Player& player, LandResizeSelector* selector) {
     aabb->fix();
     auto const volume = aabb->getVolume();
     if (volume >= INT_MAX) {
-        feedback_utils::sendErrorText(player, "领地体积过大，无法购买"_trl(localeCode));
+        feedback_utils::sendErrorText(player, "§e[星辰] §c领地体积过大，无法购买!"_trl(localeCode));
         return;
     }
 
     auto      land          = selector->getLand();
-    int const originalPrice = land->getOriginalBuyPrice(); // 原始购买价格
+    int const originalPrice = land->getOriginalBuyPrice();
 
-    std::string content = "体积: {0}x{1}x{2} = {3}\n范围: {4}\n原购买价格: {5}"_trl(
+    std::string content = "§b体积规模: §f{0}x{1}x{2} = {3}\n§b圈地范围: §f{4}\n\n§8[ 价格明细 ]\n§7原购买价格: §c{5}"_trl(
         localeCode,
         aabb->getBlockCountX(),
         aabb->getBlockCountZ(),
@@ -273,24 +271,24 @@ void LandBuyGUI::_impl(Player& player, LandResizeSelector* selector) {
             discountedPrice  = result->mDiscountedPrice;
             needPay          = result->mDiscountedPrice - originalPrice;
             refund           = originalPrice - result->mDiscountedPrice;
-            content         += "\n需补差价: {0}\n需退差价: {1}\n{2}"_trl(
+            content         += "\n§7需补差价: §e{0}\n§7需退差价: §a{1}\n\n§6{2}"_trl(
                 localeCode,
                 needPay.value_or(0) < 0 ? 0 : needPay,
                 refund.value_or(0) < 0 ? 0 : refund,
                 needPay.value_or(0) > 0 ? EconomySystem::getInstance().getCostMessage(player, needPay.value()) : ""
             );
         } else {
-            feedback_utils::sendErrorText(player, "价格表达式解析失败，请联系管理员"_trl(localeCode));
+            feedback_utils::sendErrorText(player, "§e[星辰] §c价格表达式解析失败，请联系管理员!"_trl(localeCode));
             PLand::getInstance().getSelf().getLogger().error(result.error().message());
             return;
         }
     }
 
     auto fm = ll::form::SimpleForm{};
-    fm.setTitle("[PLand] | 购买领地 & 重新选区"_trl(localeCode));
+    fm.setTitle("§l§d[星辰] §5领地重选与结算"_trl(localeCode));
     fm.setContent(content);
     fm.appendButton(
-        "确认购买"_trl(localeCode),
+        "§l§a✔ 确认购买"_trl(localeCode),
         "textures/ui/realms_green_check",
         "path",
         [needPay, refund, discountedPrice, selector](Player& pl) {
@@ -308,14 +306,14 @@ void LandBuyGUI::_impl(Player& player, LandResizeSelector* selector) {
 
             auto& service = PLand::getInstance().getServiceLocator().getLandManagementService();
             if (auto exp = service.handleChangeRange(pl, selector, settlement)) {
-                feedback_utils::sendText(pl, "领地范围修改成功"_trl(pl.getLocaleCode()));
+                feedback_utils::sendText(pl, "§e[星辰] §a领地范围修改成功！"_trl(pl.getLocaleCode()));
             } else {
                 feedback_utils::sendError(pl, exp.error());
             }
         }
     );
-    fm.appendButton("暂存订单"_trl(localeCode), "textures/ui/recipe_book_icon", "path"); // close
-    fm.appendButton("放弃订单"_trl(localeCode), "textures/ui/cancel", "path", [](Player& pl) {
+    fm.appendButton("§l§6⏸ 暂存订单"_trl(localeCode), "textures/ui/recipe_book_icon", "path");
+    fm.appendButton("§l§c✖ 放弃订单"_trl(localeCode), "textures/ui/cancel", "path", [](Player& pl) {
         land::PLand::getInstance().getSelectorManager()->stopSelection(pl);
     });
 
@@ -329,20 +327,18 @@ void LandBuyGUI::_impl(Player& player, SubLandCreateSelector* selector) {
     subLandRange->fix();
     auto const volume = subLandRange->getVolume();
     if (volume >= INT_MAX) {
-        feedback_utils::sendErrorText(player, "领地体积过大，无法购买"_trl(localeCode));
+        feedback_utils::sendErrorText(player, "§e[星辰] §c领地体积过大，无法购买!"_trl(localeCode));
         return;
     }
 
     auto&       parentPos = selector->getParentLand()->getAABB();
-    std::string content   = "[父领地]\n体积: {}x{}x{}={}\n范围: {}\n\n[子领地]\n体积: {}x{}x{}={}\n范围: {}"_trl(
+    std::string content   = "§e[父领地信息]\n§b体积: §f{}x{}x{}={}\n§b范围: §f{}\n\n§a[子领地信息]\n§b体积: §f{}x{}x{}={}\n§b范围: §f{}"_trl(
         localeCode,
-        // 父领地
         parentPos.getBlockCountX(),
         parentPos.getBlockCountZ(),
         parentPos.getBlockCountY(),
         parentPos.getVolume(),
         parentPos.toString(),
-        // 子领地
         subLandRange->getBlockCountX(),
         subLandRange->getBlockCountZ(),
         subLandRange->getBlockCountY(),
@@ -355,38 +351,37 @@ void LandBuyGUI::_impl(Player& player, SubLandCreateSelector* selector) {
         auto& service = PLand::getInstance().getServiceLocator().getLandPriceService();
         if (auto result = service.getSubLandPrice(*subLandRange, selector->getParentLand()->getDimensionId())) {
             discountedPrice  = result->mDiscountedPrice;
-            content         += "\n\n[价格]\n原价: {}\n折扣价: {}\n{}"_trl(
+            content         += "\n\n§8[ 价格明细 ]\n§7原价: §c{}\n§7折扣价: §a{}\n§e{}"_trl(
                 localeCode,
-                // 价格
                 result->mOriginalPrice,
                 result->mDiscountedPrice,
                 EconomySystem::getInstance().getCostMessage(player, result->mDiscountedPrice)
             );
         } else {
-            feedback_utils::sendErrorText(player, "价格表达式解析失败，请联系管理员"_trl(localeCode));
+            feedback_utils::sendErrorText(player, "§e[星辰] §c价格表达式解析失败，请联系管理员!"_trl(localeCode));
             PLand::getInstance().getSelf().getLogger().error(result.error().message());
             return;
         }
     }
 
     auto fm = ll::form::SimpleForm{};
-    fm.setTitle("[PLand] | 购买领地 & 子领地"_trl(localeCode));
+    fm.setTitle("§l§d[星辰] §5确认购买子领地"_trl(localeCode));
     fm.setContent(content);
     fm.appendButton(
-        "确认购买"_trl(localeCode),
+        "§l§a✔ 确认购买"_trl(localeCode),
         "textures/ui/realms_green_check",
         "path",
         [discountedPrice, selector](Player& pl) {
             auto& service = PLand::getInstance().getServiceLocator().getLandManagementService();
             if (auto exp = service.buyLand(pl, selector, discountedPrice.value_or(0))) {
-                feedback_utils::notifySuccess(pl, "购买领地成功"_trl(pl.getLocaleCode()));
+                feedback_utils::notifySuccess(pl, "§e[星辰] §a购买领地成功！"_trl(pl.getLocaleCode()));
             } else {
                 feedback_utils::sendError(pl, exp.error());
             }
         }
     );
-    fm.appendButton("暂存订单"_trl(localeCode), "textures/ui/recipe_book_icon", "path"); // close
-    fm.appendButton("放弃订单"_trl(localeCode), "textures/ui/cancel", "path", [](Player& pl) {
+    fm.appendButton("§l§6 暂存订单"_trl(localeCode), "textures/ui/recipe_book_icon", "path");
+    fm.appendButton("§l§c 放弃订单"_trl(localeCode), "textures/ui/cancel", "path", [](Player& pl) {
         land::PLand::getInstance().getSelectorManager()->stopSelection(pl);
     });
 
