@@ -13,7 +13,6 @@
 #include "pland/utils/FeedbackUtils.h"
 #include "pland/utils/McUtils.h"
 
-
 namespace land {
 
 ISelector::ISelector(Player& player, LandDimid dimid, bool is3D)
@@ -21,8 +20,8 @@ ISelector::ISelector(Player& player, LandDimid dimid, bool is3D)
   mDimid(dimid),
   m3D(is3D) {
     auto localeCode            = player.getLocaleCode();
-    mTitlePacket.mTitleText    = "[ {}选区 ]"_trl(localeCode, m3D ? "3D" : "2D");
-    mSubTitlePacket.mTitleText = "输入 /pland set a 或使用 '{}' 选择点 A"_trl(localeCode, Config::cfg.selector.alias);
+    mTitlePacket.mTitleText    = "§l§d[星辰] §5{}选区"_trl(localeCode, m3D ? "3D" : "2D");
+    mSubTitlePacket.mTitleText = "§7请使用指令 /pland set a 或使用 '{}' 选定点 A"_trl(localeCode, Config::cfg.selector.alias);
 }
 
 ISelector::~ISelector() {
@@ -49,17 +48,16 @@ std::optional<BlockPos> ISelector::getPointA() const { return mPointA; }
 
 std::optional<BlockPos> ISelector::getPointB() const { return mPointB; }
 
-
 void ISelector::setPointA(BlockPos const& point) {
     if (mPointA) {
         mPointA = point;
-        onPointAUpdated(); // a 点更新
+        onPointAUpdated();
     } else {
         mPointA = point;
-        onPointASet(); // a 点设置
+        onPointASet();
     }
     if (mPointA && mPointB) {
-        onPointABSet(); // a b 点都设置
+        onPointABSet();
     }
 }
 
@@ -85,7 +83,7 @@ void ISelector::setYRange(int start, int end) {
     if (auto player = getPlayer()) {
         feedback_utils::sendText(
             player,
-            "已设置选区高度范围: {} ~ {}"_trl(player->getLocaleCode(), mPointA->y, mPointB->y)
+            "§e[星辰] §a选区高度范围已成功设置为: §f{} §a~ §f{}"_trl(player->getLocaleCode(), mPointA->y, mPointB->y)
         );
     }
 }
@@ -126,33 +124,30 @@ std::string ISelector::dumpDebugInfo() const {
     );
 }
 
-
-// virtual
 void ISelector::onPointASet() {
     if (auto player = getPlayer()) {
-        feedback_utils::sendText(player, "已选择点 A: {}"_trl(player->getLocaleCode(), *mPointA));
+        feedback_utils::sendText(player, "§e[星辰] §a已成功选定点 A: §f{}"_trl(player->getLocaleCode(), *mPointA));
 
-        // 更新副标题
         mSubTitlePacket.mTitleText =
-            "输入 /pland set b 或使用 '{}' 选择点 B"_trl(player->getLocaleCode(), Config::cfg.selector.alias);
+            "§7请使用指令 /pland set b 或使用 '{}' 选定点 B"_trl(player->getLocaleCode(), Config::cfg.selector.alias);
     }
 }
 
 void ISelector::onPointBSet() {
     if (auto player = getPlayer()) {
-        feedback_utils::sendText(player, "已选择点 B: {}"_trl(player->getLocaleCode(), *mPointB));
+        feedback_utils::sendText(player, "§e[星辰] §a已成功选定点 B: §f{}"_trl(player->getLocaleCode(), *mPointB));
     }
 }
 
 void ISelector::onPointAUpdated() {
     if (auto player = getPlayer()) {
-        feedback_utils::sendText(player, "已更新点 A: {}"_trl(player->getLocaleCode(), *mPointA));
+        feedback_utils::sendText(player, "§e[星辰] §a已更新点 A 坐标: §f{}"_trl(player->getLocaleCode(), *mPointA));
     }
 }
 
 void ISelector::onPointBUpdated() {
     if (auto player = getPlayer()) {
-        feedback_utils::sendText(player, "已更新点 B: {}"_trl(player->getLocaleCode(), *mPointB));
+        feedback_utils::sendText(player, "§e[星辰] §a已更新点 B 坐标: §f{}"_trl(player->getLocaleCode(), *mPointB));
     }
 }
 
@@ -164,9 +159,8 @@ void ISelector::onPointABSet() {
 
     auto localeCode = player->getLocaleCode();
 
-    mTitlePacket.mTitleText    = "[ 选区完成 ]"_trl(localeCode);
-    mSubTitlePacket.mTitleText = "输入 /pland buy 呼出购买菜单"_trl(localeCode, Config::cfg.selector.alias);
-
+    mTitlePacket.mTitleText    = "§l§d[星辰] §a选区完成"_trl(localeCode);
+    mSubTitlePacket.mTitleText = "§7请在此范围内输入 /pland buy 呼出认购菜单"_trl(localeCode, Config::cfg.selector.alias);
 
     if (!is3D()) {
         auto dimension = player->getLevel().getDimension(getDimensionId()).lock();
@@ -178,7 +172,7 @@ void ISelector::onPointABSet() {
 
             onPointConfirmed();
         } else {
-            feedback_utils::sendErrorText(player, "获取维度失败"_trl(localeCode));
+            feedback_utils::sendErrorText(player, "§e[星辰] §c底层引擎获取维度数据失败！"_trl(localeCode));
         }
         return;
     }
@@ -203,4 +197,4 @@ void ISelector::onPointConfirmed() {
 
 void ISelector::tick() { sendTitle(); }
 
-} // namespace land
+}
