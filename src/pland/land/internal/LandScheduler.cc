@@ -11,7 +11,6 @@
 #include "ll/api/service/PlayerInfo.h"
 #include "ll/api/thread/ServerThreadExecutor.h"
 
-
 #include "mc/network/packet/SetTitlePacket.h"
 #include "mc/server/ServerPlayer.h"
 #include "mc/world/actor/player/Player.h"
@@ -26,7 +25,6 @@
 
 #include <unordered_map>
 #include <vector>
-
 
 namespace land::internal {
 
@@ -61,21 +59,19 @@ struct LandScheduler::Impl {
                 auto   land          = registry.getLandAt(currentPos, currentDimId);
                 LandID currentLandId = land ? land->getId() : INVALID_LAND_ID;
 
-                // 处理维度变化
                 if (currentDimId != lastDimId) {
                     if (lastLandID != INVALID_LAND_ID) {
-                        bus.publish(event::PlayerLeaveLandEvent{*player, lastLandID}); // 离开上一个维度的领地
+                        bus.publish(event::PlayerLeaveLandEvent{*player, lastLandID});
                     }
                     lastDimId = currentDimId;
                 }
 
-                // 处理领地变化
                 if (currentLandId != lastLandID) {
                     if (lastLandID != INVALID_LAND_ID) {
-                        bus.publish(event::PlayerLeaveLandEvent{*player, lastLandID}); // 离开上一个领地
+                        bus.publish(event::PlayerLeaveLandEvent{*player, lastLandID});
                     }
                     if (currentLandId != INVALID_LAND_ID) {
-                        bus.publish(event::PlayerEnterLandEvent{*player, currentLandId}); // 进入新领地
+                        bus.publish(event::PlayerEnterLandEvent{*player, currentLandId});
                     }
                     lastLandID = currentLandId;
                 }
@@ -97,7 +93,7 @@ struct LandScheduler::Impl {
             }
 
             if (!registry.getOrCreatePlayerSettings(player->getUuid()).showBottomContinuedTip) {
-                continue; // 如果玩家设置不显示底部提示，则跳过
+                continue;
             }
 
             auto land = registry.getLand(landId);
@@ -108,12 +104,12 @@ struct LandScheduler::Impl {
             auto& owner = land->getOwner();
 
             if (land->isSystemOwned()) {
-                pkt.mTitleText = "[Land] 这里是 系统 领地"_trl(player->getLocaleCode());
+                pkt.mTitleText = "§l§e[星辰] §f这里是 §c系统 §f的专属领地"_trl(player->getLocaleCode());
             } else if (land->isOwner(player->getUuid())) {
-                pkt.mTitleText = "[Land] 当前正在领地 {}"_trl(player->getLocaleCode(), land->getName());
+                pkt.mTitleText = "§l§e[星辰] §f您当前正处于领地 §a{}"_trl(player->getLocaleCode(), land->getName());
             } else {
                 auto info      = playerInfo.fromUuid(owner);
-                pkt.mTitleText = "[Land] 这里是 {} 的领地"_trl(
+                pkt.mTitleText = "§l§e[星辰] §f这里是 §b{} §f的私人领地"_trl(
                     player->getLocaleCode(),
                     info.has_value() ? info->name : owner.asString()
                 );
@@ -123,7 +119,6 @@ struct LandScheduler::Impl {
         }
     }
 };
-
 
 LandScheduler::LandScheduler() : impl(std::make_unique<Impl>()) {
     auto& bus = ll::event::EventBus::getInstance();
@@ -165,7 +160,7 @@ LandScheduler::LandScheduler() : impl(std::make_unique<Impl>()) {
             auto& registry = PLand::getInstance().getLandRegistry();
 
             if (!registry.getOrCreatePlayerSettings(player.getUuid()).showEnterLandTitle) {
-                return; // 如果玩家设置不显示进入领地提示,则不显示
+                return;
             }
 
             auto land = registry.getLand(ev.landId());
@@ -177,11 +172,11 @@ LandScheduler::LandScheduler() : impl(std::make_unique<Impl>()) {
             SetTitlePacket subTitle(SetTitlePacket::TitleType::Subtitle);
 
             if (land->isOwner(player.getUuid())) {
-                title.mTitleText    = land->getName();
-                subTitle.mTitleText = "欢迎回来"_trl(player.getLocaleCode());
+                title.mTitleText    = "§l§a" + land->getName();
+                subTitle.mTitleText = "§7欢迎回家"_trl(player.getLocaleCode());
             } else {
-                title.mTitleText    = "Welcome to"_trl(player.getLocaleCode());
-                subTitle.mTitleText = land->getName();
+                title.mTitleText    = "§l§e欢迎来到"_trl(player.getLocaleCode());
+                subTitle.mTitleText = "§b" + land->getName();
             }
 
             title.sendTo(player);
@@ -260,5 +255,4 @@ LandScheduler::~LandScheduler() {
     impl->mLandIdMap.clear();
 }
 
-
-} // namespace land::internal
+}
