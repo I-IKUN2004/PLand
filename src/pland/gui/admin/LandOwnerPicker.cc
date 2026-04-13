@@ -48,8 +48,8 @@ struct LandOwnerPicker::Impl : std::enable_shared_from_this<Impl> {
         auto localeCode = player.getLocaleCode();
         SimpleInputForm::sendTo(
             player,
-            "[PLand] | 模糊搜索"_trl(localeCode),
-            "请输入玩家名"_trl(localeCode),
+            "§l§d[星辰] §5领主模糊搜索"_trl(localeCode),
+            "§7请输入您要查找的玩家名称："_trl(localeCode),
             mFuzzyKeyword.value_or(""),
             [data = shared_from_this()](Player& player, std::string keyword) {
                 if (keyword.empty()) {
@@ -63,13 +63,13 @@ struct LandOwnerPicker::Impl : std::enable_shared_from_this<Impl> {
     }
 
     void buildForm(PaginatedForm& form, std::string const& localeCode) {
-        form.setTitle("[PLand] | 领地主人选择器"_trl(localeCode));
-        form.setContent("请选择您要管理的玩家"_trl(localeCode));
+        form.setTitle("§l§d[星辰] §5领主选择器"_trl(localeCode));
+        form.setContent("§b✧ 全服资产档案库 ✧\n\n§7请选择您要查阅或管理的领主："_trl(localeCode));
         if (mBackTo) {
             back_utils::injectBackButton(form, mBackTo);
         }
         form.appendButton(
-            "模糊搜索"_trl(localeCode),
+            "§l§2 模糊搜索\n§r§8[ 通过玩家名快速定位 ]"_trl(localeCode),
             "textures/ui/magnifyingGlass",
             "path",
             [data = shared_from_this()](Player& player) { data->sendSearchForm(player); }
@@ -79,7 +79,7 @@ struct LandOwnerPicker::Impl : std::enable_shared_from_this<Impl> {
                 continue;
             }
             form.appendButton(
-                "{} ({} 个领地)"_trl(localeCode, entry.mDisplayName, entry.mLandCount),
+                "§l§e▶ {} \n§r§8[ 名下资产: {} 处 ]"_trl(localeCode, entry.mDisplayName, entry.mLandCount),
                 [data = shared_from_this(), uuid = entry.mOwner](Player& player) { data->mCallback(player, uuid); }
             );
         }
@@ -104,6 +104,5 @@ void LandOwnerPicker::sendTo(Player& player, Callback callback, ll::form::Simple
     impl->sendTo(player);
 }
 
-
-} // namespace gui
-} // namespace land
+}
+}
