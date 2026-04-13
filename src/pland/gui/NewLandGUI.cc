@@ -20,24 +20,20 @@
 #include "pland/utils/FeedbackUtils.h"
 #include "pland/utils/McUtils.h"
 
-
 #include <string>
-
 
 using namespace ll::form;
 
-
 namespace land::gui {
-
 
 void NewLandGUI::sendChooseLandDim(Player& player) {
     auto localeCode = player.getLocaleCode();
 
     ModalForm(
-        ("[PLand] | 选择领地维度"_trl(localeCode)),
-        "请选择领地维度\n\n2D: 领地拥有整个Y轴\n3D: 自行选择Y轴范围"_trl(localeCode),
-        "2D", // true
-        "3D"  // false
+        ("§l§d[星辰] §5选择领地维度"_trl(localeCode)),
+        "§b✧ 圈地模式选择 ✧\n\n§7请选择您的领地维度模式：\n\n§e[ 2D 模式 ] §f领地将贯穿整个 Y 轴 (从基岩到天空)\n§a[ 3D 模式 ] §f可自由定义 Y 轴的上下限范围"_trl(localeCode),
+        "§l§e▶ 2D 贯穿模式"_trl(localeCode),
+        "§l§a▶ 3D 自定义模式"_trl(localeCode)
     )
         .sendTo(player, [](Player& pl, ModalFormResult res, FormCancelReason) {
             if (!res.has_value()) {
@@ -56,14 +52,13 @@ void NewLandGUI::sendChooseLandDim(Player& player) {
 
             feedback_utils::sendText(
                 pl,
-                "选区功能已开启，使用命令 /pland set 或使用 {} 来选择ab点"_trl(
+                "§e[星辰] §a选区功能已开启，请使用指令 /pland set 或 {} 来选择 A/B 点"_trl(
                     pl.getLocaleCode(),
                     ConfigProvider::getSelectionConfig().alias
                 )
             );
         });
 }
-
 
 void NewLandGUI::sendConfirmPrecinctsYRange(Player& player, std::string const& exception) {
     auto selector = land::PLand::getInstance().getSelectorManager()->getSelector(player);
@@ -72,9 +67,9 @@ void NewLandGUI::sendConfirmPrecinctsYRange(Player& player, std::string const& e
     }
     auto localeCode = player.getLocaleCode();
 
-    CustomForm fm(("[PLand] | 确认Y轴范围"_trl(localeCode)));
+    CustomForm fm(("§l§d[星辰] §5确认 Y 轴范围"_trl(localeCode)));
 
-    fm.appendLabel("确认选区的Y轴范围\n您可以在此调节Y轴范围，如果不需要修改，请直接点击提交"_trl(localeCode));
+    fm.appendLabel("§7请确认或微调您选区的 Y 轴 (高度) 范围。\n§8(若无需修改，可直接下拉点击提交)"_trl(localeCode));
 
     SubLandCreateSelector* subSelector = nullptr;
     std::shared_ptr<Land>  parentLand  = nullptr;
@@ -82,7 +77,7 @@ void NewLandGUI::sendConfirmPrecinctsYRange(Player& player, std::string const& e
         if (parentLand = subSelector->getParentLand(); parentLand) {
             auto& aabb = parentLand->getAABB();
             fm.appendLabel(
-                "当前为子领地模式，子领地的Y轴范围不能超过父领地。\n父领地Y轴范围: {} ~ {}"_trl(
+                "§c⚠ 注意：当前为子领地模式！\n§7子领地的高度必须被包含在父领地内。\n§f父领地 Y 轴限制: §a{} §f~ §a{}"_trl(
                     localeCode,
                     aabb.min.y,
                     aabb.max.y
@@ -91,8 +86,8 @@ void NewLandGUI::sendConfirmPrecinctsYRange(Player& player, std::string const& e
         }
     }
 
-    fm.appendInput("start", "开始Y轴"_trl(localeCode), "int", std::to_string(selector->getPointA()->y));
-    fm.appendInput("end", "结束Y轴"_trl(localeCode), "int", std::to_string(selector->getPointB()->y));
+    fm.appendInput("start", "§l§2▶ 开始 Y 轴 (底部)"_trl(localeCode), "int", std::to_string(selector->getPointA()->y));
+    fm.appendInput("end", "§l§2▶ 结束 Y 轴 (顶部)"_trl(localeCode), "int", std::to_string(selector->getPointB()->y));
 
     fm.appendLabel(exception);
 
@@ -109,12 +104,12 @@ void NewLandGUI::sendConfirmPrecinctsYRange(Player& player, std::string const& e
             int64_t startY = std::stoll(start);
             int64_t endY   = std::stoll(end);
             if (startY >= INT32_MAX || startY <= INT32_MIN || endY >= INT32_MAX || endY <= INT32_MIN) {
-                sendConfirmPrecinctsYRange(pl, "数值过大，请输入正确的Y轴范围"_trl(localeCode));
+                sendConfirmPrecinctsYRange(pl, "§e[星辰] §c数值输入异常，请输入正确的 Y 轴范围！"_trl(localeCode));
                 return;
             }
 
             if (startY >= endY) {
-                sendConfirmPrecinctsYRange(pl, "请输入正确的Y轴范围, 开始Y轴必须小于结束Y轴"_trl(localeCode));
+                sendConfirmPrecinctsYRange(pl, "§e[星辰] §c高度逻辑错误：开始 Y 轴必须小于结束 Y 轴！"_trl(localeCode));
                 return;
             }
 
@@ -127,7 +122,7 @@ void NewLandGUI::sendConfirmPrecinctsYRange(Player& player, std::string const& e
                 if (startY < aabb.min.y || endY > aabb.max.y) {
                     sendConfirmPrecinctsYRange(
                         pl,
-                        "请输入正确的Y轴范围, 子领地的Y轴范围不能超过父领地"_trl(localeCode)
+                        "§e[星辰] §c越界错误：子领地的高度范围超出了父领地的限制！"_trl(localeCode)
                     );
                     return;
                 }
@@ -136,10 +131,9 @@ void NewLandGUI::sendConfirmPrecinctsYRange(Player& player, std::string const& e
             selector->setYRange(startY, endY);
             selector->onPointConfirmed();
         } catch (...) {
-            sendConfirmPrecinctsYRange(pl, "处理失败,请输入正确的Y轴范围"_trl(localeCode));
+            sendConfirmPrecinctsYRange(pl, "§e[星辰] §c处理失败，请检查输入的 Y 轴坐标是否合法！"_trl(localeCode));
         }
     });
 }
 
-
-} // namespace land
+}
