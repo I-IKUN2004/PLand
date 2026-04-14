@@ -44,7 +44,7 @@ std::string getDisplayNameStr(std::string const& xuid, std::string const& realNa
             std::stringstream buffer;
             buffer << file.rdbuf();
             std::string content = buffer.str();
-            std::regex rgx(R"("(\d{16,20})"\s*:\s*"([^"]+)")");
+            std::regex rgx(R"REG("(\d{16,20})"\s*:\s*"([^"]+)")REG");
             std::smatch match;
             std::string::const_iterator searchStart(content.cbegin());
             nickCache.clear();
