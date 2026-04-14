@@ -25,8 +25,43 @@
 
 #include <unordered_map>
 #include <vector>
+#include <fstream>
+#include <sstream>
+#include <regex>
+#include <chrono>
+#include <string>
 
 namespace land::internal {
+
+std::string getDisplayNameStr(std::string const& xuid, std::string const& realName) {
+    static std::unordered_map<std::string, std::string> nickCache;
+    static auto lastUpdate = std::chrono::steady_clock::time_point::min();
+    auto now = std::chrono::steady_clock::now();
+
+    if (std::chrono::duration_cast<std::chrono::seconds>(now - lastUpdate).count() > 10) {
+        std::ifstream file("plugins/GwNickName/data.json");
+        if (file.is_open()) {
+            std::stringstream buffer;
+            buffer << file.rdbuf();
+            std::string content = buffer.str();
+            std::regex rgx(R"("(\d{16,20})"\s*:\s*"([^"]+)")");
+            std::smatch match;
+            std::string::const_iterator searchStart(content.cbegin());
+            nickCache.clear();
+            while (std::regex_search(searchStart, content.cend(), match, rgx)) {
+                nickCache[match[1].str()] = match[2].str();
+                searchStart = match.suffix().first;
+            }
+        }
+        lastUpdate = now;
+    }
+
+    auto it = nickCache.find(xuid);
+    if (it != nickCache.end() && it->second != "未命名") {
+        return "§e" + it->second + " §r§f(" + realName + ")§r";
+    }
+    return "§e" + realName + "§r";
+}
 
 struct LandScheduler::Impl {
     std::vector<Player*>                   mPlayers{};
@@ -108,10 +143,17 @@ struct LandScheduler::Impl {
             } else if (land->isOwner(player->getUuid())) {
                 pkt.mTitleText = "§l§e[星辰] §f您当前正处于领地 §a{}"_trl(player->getLocaleCode(), land->getName());
             } else {
-                auto info      = playerInfo.fromUuid(owner);
-                pkt.mTitleText = "§l§e[星辰] §f这里是 §b{} §f的私人领地"_trl(
+                auto info = playerInfo.fromUuid(owner);
+                std::string ownerDisplay;
+                if (info.has_value()) {
+                    ownerDisplay = getDisplayNameStr(info->xuid, info->name);
+                } else {
+                    ownerDisplay = "§e" + owner.asString() + "§r";
+                }
+                
+                pkt.mTitleText = "§l§e[星辰] §f这里是 {} §f的私人领地"_trl(
                     player->getLocaleCode(),
-                    info.has_value() ? info->name : owner.asString()
+                    ownerDisplay
                 );
             }
 
