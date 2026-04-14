@@ -27,7 +27,6 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
-#include <regex>
 #include <chrono>
 #include <string>
 
@@ -44,20 +43,48 @@ std::string getDisplayNameStr(std::string const& xuid, std::string const& realNa
             std::stringstream buffer;
             buffer << file.rdbuf();
             std::string content = buffer.str();
-            std::regex rgx(R"REG("(\d{16,20})"\s*:\s*"([^"]+)")REG");
-            std::smatch match;
-            std::string::const_iterator searchStart(content.cbegin());
+            
             nickCache.clear();
-            while (std::regex_search(searchStart, content.cend(), match, rgx)) {
-                nickCache[match[1].str()] = match[2].str();
-                searchStart = match.suffix().first;
+            size_t pos = 0;
+            while ((pos = content.find('"', pos)) != std::string::npos) {
+                size_t endKey = content.find('"', pos + 1);
+                if (endKey == std::string::npos) break;
+                
+                std::string key = content.substr(pos + 1, endKey - pos - 1);
+                pos = endKey + 1;
+                
+                bool isXuid = (key.length() >= 15 && key.length() <= 20);
+                if (isXuid) {
+                    for (char c : key) {
+                        if (c < '0' || c > '9') { isXuid = false; break; }
+                    }
+                }
+                
+                if (isXuid) {
+                    size_t colonPos = content.find(':', pos);
+                    if (colonPos != std::string::npos) {
+                        size_t valStart = content.find('"', colonPos);
+                        if (valStart != std::string::npos) {
+                            size_t valEnd = valStart + 1;
+                            while ((valEnd = content.find('"', valEnd)) != std::string::npos) {
+                                if (content[valEnd - 1] != '\\') break;
+                                valEnd++;
+                            }
+                            if (valEnd != std::string::npos) {
+                                std::string value = content.substr(valStart + 1, valEnd - valStart - 1);
+                                nickCache[key] = value;
+                                pos = valEnd + 1;
+                            }
+                        }
+                    }
+                }
             }
         }
         lastUpdate = now;
     }
 
     auto it = nickCache.find(xuid);
-    if (it != nickCache.end() && it->second != "未命名") {
+    if (it != nickCache.end() && it->second != "未命名" && !it->second.empty()) {
         return "§e" + it->second + " §r§f(" + realName + ")§r";
     }
     return "§e" + realName + "§r";
@@ -139,9 +166,9 @@ struct LandScheduler::Impl {
             auto& owner = land->getOwner();
 
             if (land->isSystemOwned()) {
-                pkt.mTitleText = "§l§e[星辰] §f这里是 §c系统 §f的专属领地"_trl(player->getLocaleCode());
+                pkt.mTitleText = "\n§l§e[星辰] §f这里是 §c系统 §f的专属领地"_trl(player->getLocaleCode());
             } else if (land->isOwner(player->getUuid())) {
-                pkt.mTitleText = "§l§e[星辰] §f您当前正处于领地 §a{}"_trl(player->getLocaleCode(), land->getName());
+                pkt.mTitleText = "\n§l§e[星辰] §f您当前正处于领地 §a{}"_trl(player->getLocaleCode(), land->getName());
             } else {
                 auto info = playerInfo.fromUuid(owner);
                 std::string ownerDisplay;
@@ -151,7 +178,7 @@ struct LandScheduler::Impl {
                     ownerDisplay = "§e" + owner.asString() + "§r";
                 }
                 
-                pkt.mTitleText = "§l§e[星辰] §f这里是 {} §f的私人领地"_trl(
+                pkt.mTitleText = "\n§l§e[星辰] §f这里是 {} §f的私人领地"_trl(
                     player->getLocaleCode(),
                     ownerDisplay
                 );
