@@ -4,6 +4,7 @@
 #include "ll/api/form/CustomForm.h"
 #include "ll/api/form/FormBase.h"
 #include "ll/api/form/ModalForm.h"
+#include "ll/api/form/SimpleForm.h"
 
 #include "mc/world/actor/player/Player.h"
 
@@ -29,35 +30,49 @@ namespace land::gui {
 void NewLandGUI::sendChooseLandDim(Player& player) {
     auto localeCode = player.getLocaleCode();
 
-    ModalForm(
-        ("§l§d[星辰] §5选择领地维度"_trl(localeCode)),
-        "§b✧ 圈地模式选择 ✧\n\n§7请选择您的领地维度模式：\n\n§e[ 2D 模式 ] §f领地将贯穿整个 Y 轴 (从基岩到天空)\n§a[ 3D 模式 ] §f可自由定义 Y 轴的上下限范围"_trl(localeCode),
-        "§l§e▶ 2D 贯穿模式"_trl(localeCode),
-        "§l§a▶ 3D 自定义模式"_trl(localeCode)
-    )
-        .sendTo(player, [](Player& pl, ModalFormResult res, FormCancelReason) {
-            if (!res.has_value()) {
-                return;
-            }
+    SimpleForm fm;
+    fm.setTitle("§l§d[星辰] §5选择领地维度"_trl(localeCode));
+    fm.setContent("§b✧ 圈地模式选择 ✧\n\n§7请选择您的领地维度模式：\n\n§e[ 2D 模式 ] §f领地将贯穿整个 Y 轴 (从基岩到天空)\n§a[ 3D 模式 ] §f可自由定义 Y 轴的上下限范围"_trl(localeCode));
 
-            bool is3D = !((bool)res.value());
+    auto processSelection = [](Player& pl, bool is3D) {
+        auto& service = PLand::getInstance().getServiceLocator().getLandManagementService();
 
-            auto& service = PLand::getInstance().getServiceLocator().getLandManagementService();
+        auto expected = service.requestCreateOrdinaryLand(pl, is3D);
+        if (!expected) {
+            feedback_utils::sendError(pl, expected.error());
+            return;
+        }
 
-            auto expected = service.requestCreateOrdinaryLand(pl, is3D);
-            if (!expected) {
-                feedback_utils::sendError(pl, expected.error());
-                return;
-            }
+        feedback_utils::sendText(
+            pl,
+            "§e[星辰] §a选区功能已开启，请使用指令 /pland set 或 {} 来选择 A/B 点"_trl(
+                pl.getLocaleCode(),
+                ConfigProvider::getSelectionConfig().alias
+            )
+        );
+    };
 
-            feedback_utils::sendText(
-                pl,
-                "§e[星辰] §a选区功能已开启，请使用指令 /pland set 或 {} 来选择 A/B 点"_trl(
-                    pl.getLocaleCode(),
-                    ConfigProvider::getSelectionConfig().alias
-                )
-            );
-        });
+    fm.appendButton(
+        "§l§e▶ 2D 贯穿模式\n§r§8[ 领地将贯穿整个 Y 轴 ]"_trl(localeCode),
+        "textures/ui/icon_spring",
+        "path",
+        [processSelection](Player& pl) { processSelection(pl, false); }
+    );
+
+    fm.appendButton(
+        "§l§a▶ 3D 自定义模式\n§r§8[ 自由定义 Y 轴上下限 ]"_trl(localeCode),
+        "textures/ui/icon_recipe_nature",
+        "path",
+        [processSelection](Player& pl) { processSelection(pl, true); }
+    );
+
+    fm.appendButton(
+        "§l§8✖ 取消"_trl(localeCode),
+        "textures/ui/cancel",
+        "path"
+    );
+
+    fm.sendTo(player);
 }
 
 void NewLandGUI::sendConfirmPrecinctsYRange(Player& player, std::string const& exception) {
