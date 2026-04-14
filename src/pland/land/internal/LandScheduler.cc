@@ -29,6 +29,7 @@
 #include <sstream>
 #include <chrono>
 #include <string>
+#include <nlohmann/json.hpp>
 
 namespace land::internal {
 
@@ -44,41 +45,27 @@ std::string getDisplayNameStr(std::string const& xuid, std::string const& realNa
             buffer << file.rdbuf();
             std::string content = buffer.str();
             
-            nickCache.clear();
-            size_t pos = 0;
-            while ((pos = content.find('"', pos)) != std::string::npos) {
-                size_t endKey = content.find('"', pos + 1);
-                if (endKey == std::string::npos) break;
-                
-                std::string key = content.substr(pos + 1, endKey - pos - 1);
-                pos = endKey + 1;
-                
-                bool isXuid = (key.length() >= 15 && key.length() <= 20);
-                if (isXuid) {
-                    for (char c : key) {
-                        if (c < '0' || c > '9') { isXuid = false; break; }
-                    }
-                }
-                
-                if (isXuid) {
-                    size_t colonPos = content.find(':', pos);
-                    if (colonPos != std::string::npos) {
-                        size_t valStart = content.find('"', colonPos);
-                        if (valStart != std::string::npos) {
-                            size_t valEnd = valStart + 1;
-                            while ((valEnd = content.find('"', valEnd)) != std::string::npos) {
-                                if (content[valEnd - 1] != '\\') break;
-                                valEnd++;
-                            }
-                            if (valEnd != std::string::npos) {
-                                std::string value = content.substr(valStart + 1, valEnd - valStart - 1);
-                                nickCache[key] = value;
-                                pos = valEnd + 1;
-                            }
-                        }
-                    }
-                }
+            if (content.size() >= 3 && content[0] == '\xEF' && content[1] == '\xBB' && content[2] == '\xBF') {
+                content = content.substr(3);
             }
+            
+            try {
+                auto j = nlohmann::json::parse(content);
+                nickCache.clear();
+                
+                nlohmann::json entries;
+                if (j.contains("data") && j["data"].is_object()) {
+                    entries = j["data"];
+                } else {
+                    entries = j;
+                }
+                
+                for (auto& el : entries.items()) {
+                    if (el.value().is_string()) {
+                        nickCache[el.key()] = el.value().get<std::string>();
+                    }
+                }
+            } catch (...) {}
         }
         lastUpdate = now;
     }
@@ -166,9 +153,9 @@ struct LandScheduler::Impl {
             auto& owner = land->getOwner();
 
             if (land->isSystemOwned()) {
-                pkt.mTitleText = "\n§l§e[星辰] §f这里是 §c系统 §f的专属领地"_trl(player->getLocaleCode());
+                pkt.mTitleText = "§l§e[星辰] §f这里是 §c系统 §f的专属领地"_trl(player->getLocaleCode());
             } else if (land->isOwner(player->getUuid())) {
-                pkt.mTitleText = "\n§l§e[星辰] §f您当前正处于领地 §a{}"_trl(player->getLocaleCode(), land->getName());
+                pkt.mTitleText = "§l§e[星辰] §f您当前正处于领地 §a{}"_trl(player->getLocaleCode(), land->getName());
             } else {
                 auto info = playerInfo.fromUuid(owner);
                 std::string ownerDisplay;
@@ -178,7 +165,7 @@ struct LandScheduler::Impl {
                     ownerDisplay = "§e" + owner.asString() + "§r";
                 }
                 
-                pkt.mTitleText = "\n§l§e[星辰] §f这里是 {} §f的私人领地"_trl(
+                pkt.mTitleText = "§l§e[星辰] §f这里是 {} §f的私人领地"_trl(
                     player->getLocaleCode(),
                     ownerDisplay
                 );
