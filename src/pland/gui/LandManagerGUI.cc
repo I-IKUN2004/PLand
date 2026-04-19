@@ -6,7 +6,6 @@
 
 #include "ll/api/form/CustomForm.h"
 #include "ll/api/form/FormBase.h"
-#include "ll/api/form/ModalForm.h"
 #include "ll/api/form/SimpleForm.h"
 #include "ll/api/service/PlayerInfo.h"
 
@@ -289,23 +288,21 @@ void LandManagerGUI::confirmSimpleDelete(Player& player, std::shared_ptr<Land> c
                   refund
               );
 
-    ModalForm("§l§d[星辰] §4确认注销领地?"_trl(localeCode), content, "§l§c✔ 确认删除"_trl(localeCode), "§l§8✖ 返回"_trl(localeCode))
-        .sendTo(player, [ptr](Player& pl, ModalFormResult const& res, FormCancelReason) {
-            if (!res) {
-                return;
-            }
-            if (!(bool)res.value()) {
-                sendMainMenu(pl, ptr);
-                return;
-            }
-
-            auto& service = PLand::getInstance().getServiceLocator().getLandManagementService();
-            if (auto expected = service.deleteLand(pl, ptr, service::DeletePolicy::CurrentOnly)) {
-                feedback_utils::notifySuccess(pl, "§e[星辰] §a删除成功！"_trl(pl.getLocaleCode()));
-            } else {
-                feedback_utils::sendError(pl, expected.error());
-            }
-        });
+    SimpleForm fm;
+    fm.setTitle("§l§d[星辰] §4确认注销领地?"_trl(localeCode));
+    fm.setContent(content);
+    fm.appendButton("§l§c✔ 确认删除"_trl(localeCode), "textures/ui/realms_green_check", "path", [ptr](Player& pl) {
+        auto& service = PLand::getInstance().getServiceLocator().getLandManagementService();
+        if (auto expected = service.deleteLand(pl, ptr, service::DeletePolicy::CurrentOnly)) {
+            feedback_utils::notifySuccess(pl, "§e[星辰] §a删除成功！"_trl(pl.getLocaleCode()));
+        } else {
+            feedback_utils::sendError(pl, expected.error());
+        }
+    });
+    fm.appendButton("§l§8✖ 返回"_trl(localeCode), "textures/ui/cancel", "path", [ptr](Player& pl) {
+        sendMainMenu(pl, ptr);
+    });
+    fm.sendTo(player);
 }
 
 void LandManagerGUI::confirmParentDelete(Player& player, std::shared_ptr<Land> const& ptr) {
@@ -481,92 +478,66 @@ void LandManagerGUI::_confirmTransferLand(
 ) {
     auto localeCode = player.getLocaleCode();
 
-    ModalForm(
-        "§l§d[星辰] §5确认领地过户"_trl(localeCode),
-        "§c⚠ 核心资产转移警告 ⚠\n\n§f您即将把该领地的所有权转让给玩家: §e{}\n\n§7过户完成后，您将彻底失去对该领地的最高控制权。\n§4此操作完全不可逆，请极其谨慎地抉择!"_trl(
+    SimpleForm fm;
+    fm.setTitle("§l§d[星辰] §5确认领地过户"_trl(localeCode));
+    fm.setContent("§c⚠ 核心资产转移警告 ⚠\n\n§f您即将把该领地的所有权转让给玩家: §e{}\n\n§7过户完成后，您将彻底失去对该领地的最高控制权。\n§4此操作完全不可逆，请极其谨慎地抉择!"_trl(
             localeCode,
             displayName
-        ),
-        "§l§a✔ 确认过户"_trl(localeCode),
-        "§l§8✖ 取消返回"_trl(localeCode)
-    )
-        .sendTo(player, [ptr, target, displayName](Player& player, ModalFormResult const& res, FormCancelReason) {
-            if (!res) {
-                return;
+        ));
+    fm.appendButton("§l§a✔ 确认过户"_trl(localeCode), "textures/ui/realms_green_check", "path", [ptr, target, displayName](Player& pl) {
+        auto& service = PLand::getInstance().getServiceLocator().getLandManagementService();
+        if (auto expected = service.transferLand(pl, ptr, target)) {
+            auto localeCode = pl.getLocaleCode();
+            feedback_utils::sendText(pl, "§e[星辰] §a领地已成功转让给 {}"_trl(localeCode, displayName));
+            if (auto targetPlayer = pl.getLevel().getPlayer(target)) {
+                feedback_utils::sendText(
+                    *targetPlayer,
+                    "§e[星辰] §a您已接手来自 \"{}\" 的领地 \"{}\""_trl(localeCode, pl.getRealName(), ptr->getName())
+                );
             }
-            if (!(bool)res.value()) {
-                sendTransferLandGUI(player, ptr);
-                return;
-            }
-            auto& service = PLand::getInstance().getServiceLocator().getLandManagementService();
-            if (auto expected = service.transferLand(player, ptr, target)) {
-                auto localeCode = player.getLocaleCode();
-
-                feedback_utils::sendText(player, "§e[星辰] §a领地已成功转让给 {}"_trl(localeCode, displayName));
-                if (auto targetPlayer = player.getLevel().getPlayer(target)) {
-                    feedback_utils::sendText(
-                        *targetPlayer,
-                        "§e[星辰] §a您已接手来自 \"{}\" 的领地 \"{}\""_trl(localeCode, player.getRealName(), ptr->getName())
-                    );
-                }
-            } else {
-                feedback_utils::sendError(player, expected.error());
-            }
-        });
+        } else {
+            feedback_utils::sendError(pl, expected.error());
+        }
+    });
+    fm.appendButton("§l§8✖ 取消返回"_trl(localeCode), "textures/ui/cancel", "path", [ptr](Player& pl) {
+        sendTransferLandGUI(pl, ptr);
+    });
+    fm.sendTo(player);
 }
 
 void LandManagerGUI::sendCreateSubLandConfirm(Player& player, const std::shared_ptr<Land>& ptr) {
     auto localeCode = player.getLocaleCode();
 
-    ModalForm{
-        "§l§d[星辰] §5子领地划拨确认"_trl(localeCode),
-        "§b✧ 子领地划分说明 ✧\n\n§7您即将在当前领地内部圈占一块全新区域。\n\n§e子领地特性：\n§f• 物理范围被限制在当前主领地内\n§f• 拥有完全独立的权限与成员系统\n\n§a是否确认开启选区？"_trl(
-            localeCode
-        ),
-        "§l§a✔ 开启选区"_trl(localeCode),
-        "§l§8✖ 取消"_trl(localeCode)
-    }
-        .sendTo(player, [ptr](Player& player, ModalFormResult const& res, FormCancelReason) {
-            if (!res) return;
-            if (!(bool)res.value()) {
-                LandManagerGUI::sendMainMenu(player, ptr);
-                return;
-            }
-            auto& service = PLand::getInstance().getServiceLocator().getLandManagementService();
-            if (auto expected = service.requestCreateSubLand(player)) {
-                feedback_utils::sendText(
-                    player,
-                    "§e[星辰] §a选区功能已开启，使用命令 /pland set 或使用 {} 来选择ab点"_trl(
-                        player.getLocaleCode(),
-                        ConfigProvider::getSelectionConfig().alias
-                    )
-                );
-            } else {
-                feedback_utils::sendError(player, expected.error());
-            }
-        });
+    SimpleForm fm;
+    fm.setTitle("§l§d[星辰] §5子领地划拨确认"_trl(localeCode));
+    fm.setContent("§b✧ 子领地划分说明 ✧\n\n§7您即将在当前领地内部圈占一块全新区域。\n\n§e子领地特性：\n§f• 物理范围被限制在当前主领地内\n§f• 拥有完全独立的权限与成员系统\n\n§a是否确认开启选区？"_trl(localeCode));
+    fm.appendButton("§l§a✔ 开启选区"_trl(localeCode), "textures/ui/realms_green_check", "path", [ptr](Player& pl) {
+        auto& service = PLand::getInstance().getServiceLocator().getLandManagementService();
+        if (auto expected = service.requestCreateSubLand(pl)) {
+            feedback_utils::sendText(
+                pl,
+                "§e[星辰] §a选区功能已开启，使用命令 /pland set 或使用 {} 来选择ab点"_trl(
+                    pl.getLocaleCode(),
+                    ConfigProvider::getSelectionConfig().alias
+                )
+            );
+        } else {
+            feedback_utils::sendError(pl, expected.error());
+        }
+    });
+    fm.appendButton("§l§8✖ 取消"_trl(localeCode), "textures/ui/cancel", "path", [ptr](Player& pl) {
+        LandManagerGUI::sendMainMenu(pl, ptr);
+    });
+    fm.sendTo(player);
 }
 
 void LandManagerGUI::sendChangeRangeConfirm(Player& player, std::shared_ptr<Land> const& ptr) {
     auto localeCode = player.getLocaleCode();
 
-    ModalForm fm(
-        "§l§d[星辰] §5领地范围重置"_trl(localeCode),
-        "§b✧ 重新选区说明 ✧\n\n§7重新选区意味着您需要完全重新框选 A/B 两点，而不是简单的边缘微调。\n\n§e结算规则：\n§f系统将按照 [新选区价格] - [旧选区残值] 进行多退少补。\n\n§a是否确认开启选区？"_trl(
-            localeCode
-        ),
-        "§l§a✔ 开启选区"_trl(localeCode),
-        "§l§8✖ 取消"_trl(localeCode)
-    );
-    fm.sendTo(player, [ptr](Player& self, ModalFormResult const& res, FormCancelReason) {
-        if (!res) {
-            return;
-        }
-
-        if (!(bool)res.value()) {
-            LandManagerGUI::sendMainMenu(self, ptr);
-            return;
-        }
+    SimpleForm fm;
+    fm.setTitle("§l§d[星辰] §5领地范围重置"_trl(localeCode));
+    fm.setContent("§b✧ 重新选区说明 ✧\n\n§7重新选区意味着您需要完全重新框选 A/B 两点，而不是简单的边缘微调。\n\n§e结算规则：\n§f系统将按照 [新选区价格] - [旧选区残值] 进行多退少补。\n\n§a是否确认开启选区？"_trl(localeCode));
+    fm.appendButton("§l§a✔ 开启选区"_trl(localeCode), "textures/ui/realms_green_check", "path", [ptr](Player& self) {
         auto& service = PLand::getInstance().getServiceLocator().getLandManagementService();
         if (auto expected = service.requestChangeRange(self, ptr)) {
             feedback_utils::sendText(
@@ -580,6 +551,10 @@ void LandManagerGUI::sendChangeRangeConfirm(Player& player, std::shared_ptr<Land
             feedback_utils::sendError(self, expected.error());
         }
     });
+    fm.appendButton("§l§8✖ 取消"_trl(localeCode), "textures/ui/cancel", "path", [ptr](Player& self) {
+        LandManagerGUI::sendMainMenu(self, ptr);
+    });
+    fm.sendTo(player);
 }
 
 void LandManagerGUI::sendChangeMember(Player& player, std::shared_ptr<Land> ptr) {
@@ -651,21 +626,10 @@ void LandManagerGUI::_confirmAddMember(
 ) {
     auto localeCode = player.getLocaleCode();
 
-    ModalForm fm(
-        "§l§d[星辰] §5确认添加成员"_trl(localeCode),
-        "§f您确定要授予玩家 §e{} §f本领地的成员权限吗？"_trl(localeCode, displayName),
-        "§l§a✔ 确认添加"_trl(localeCode),
-        "§l§8✖ 取消"_trl(localeCode)
-    );
-    fm.sendTo(player, [ptr, member](Player& self, ModalFormResult const& res, FormCancelReason) {
-        if (!res) {
-            return;
-        }
-        if (!(bool)res.value()) {
-            sendChangeMember(self, ptr);
-            return;
-        }
-
+    SimpleForm fm;
+    fm.setTitle("§l§d[星辰] §5确认添加成员"_trl(localeCode));
+    fm.setContent("§f您确定要授予玩家 §e{} §f本领地的成员权限吗？"_trl(localeCode, displayName));
+    fm.appendButton("§l§a✔ 确认添加"_trl(localeCode), "textures/ui/realms_green_check", "path", [ptr, member](Player& self) {
         auto& service = PLand::getInstance().getServiceLocator().getLandManagementService();
         if (auto expected = service.addMember(self, ptr, member)) {
             feedback_utils::sendText(self, "§e[星辰] §a添加成员成功!"_trl(self.getLocaleCode()));
@@ -673,27 +637,20 @@ void LandManagerGUI::_confirmAddMember(
             feedback_utils::sendError(self, expected.error());
         }
     });
+    fm.appendButton("§l§8✖ 取消"_trl(localeCode), "textures/ui/cancel", "path", [ptr](Player& self) {
+        sendChangeMember(self, ptr);
+    });
+    fm.sendTo(player);
 }
 
 void LandManagerGUI::_confirmRemoveMember(Player& player, std::shared_ptr<Land> ptr, mce::UUID member) {
     auto info       = ll::service::PlayerInfo::getInstance().fromUuid(member);
     auto localeCode = player.getLocaleCode();
 
-    ModalForm fm(
-        "§l§d[星辰] §5确认移除成员"_trl(localeCode),
-        "§f您确定要褫夺玩家 §e{} §f的领地成员权限吗？"_trl(localeCode, info.has_value() ? info->name : member.asString()),
-        "§l§c✔ 确认移除"_trl(localeCode),
-        "§l§8✖ 取消"_trl(localeCode)
-    );
-    fm.sendTo(player, [ptr, member](Player& self, ModalFormResult const& res, FormCancelReason) {
-        if (!res) {
-            return;
-        }
-        if (!(bool)res.value()) {
-            sendChangeMember(self, ptr);
-            return;
-        }
-
+    SimpleForm fm;
+    fm.setTitle("§l§d[星辰] §5确认移除成员"_trl(localeCode));
+    fm.setContent("§f您确定要褫夺玩家 §e{} §f的领地成员权限吗？"_trl(localeCode, info.has_value() ? info->name : member.asString()));
+    fm.appendButton("§l§c✔ 确认移除"_trl(localeCode), "textures/ui/realms_green_check", "path", [ptr, member](Player& self) {
         auto& service = PLand::getInstance().getServiceLocator().getLandManagementService();
         if (auto expected = service.removeMember(self, ptr, member)) {
             feedback_utils::sendText(self, "§e[星辰] §a移除成员成功!"_trl(self.getLocaleCode()));
@@ -701,6 +658,10 @@ void LandManagerGUI::_confirmRemoveMember(Player& player, std::shared_ptr<Land> 
             feedback_utils::sendError(self, expected.error());
         }
     });
+    fm.appendButton("§l§8✖ 取消"_trl(localeCode), "textures/ui/cancel", "path", [ptr](Player& self) {
+        sendChangeMember(self, ptr);
+    });
+    fm.sendTo(player);
 }
 
 }
